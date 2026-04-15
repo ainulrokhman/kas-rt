@@ -26,8 +26,8 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Warga", href: "/residents", icon: Users },
-    { name: "Kas & Iuran", href: "/transactions", icon: Wallet },
+    { name: "Warga", href: "/warga", icon: Users },
+    { name: "Jimpitan", href: "/jimpitan", icon: Wallet },
     { name: "Laporan", href: "/reports", icon: FileText },
     { name: "Pengaturan", href: "/settings", icon: Settings },
   ];

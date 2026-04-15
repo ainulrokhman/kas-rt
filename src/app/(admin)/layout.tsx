@@ -11,6 +11,19 @@ export default function AdminLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Mencegah dan menghapus stale Service Worker (sw.js) dari cache localhost lama 
+  // yang memblokir request Firebase akibat Content Security Policy lawas.
+  React.useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log("Stale Service Worker unregistered to prevent CSP block.");
+        }
+      });
+    }
+  }, []);
+
   return (
     <div className="flex h-screen bg-[#0B1120] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Sidebar (Desktop static, Mobile Drawer) */}
