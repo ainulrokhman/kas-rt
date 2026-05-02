@@ -36,8 +36,8 @@ export function PetugasFormModal({
       await PetugasService.updateJabatan(petugas.id, jabatan);
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Gagal memperbarui jabatan.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal memperbarui jabatan.");
     } finally {
       setIsLoading(false);
     }

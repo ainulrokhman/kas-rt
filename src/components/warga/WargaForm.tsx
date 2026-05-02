@@ -42,8 +42,8 @@ export default function WargaForm({ initialData, onClose }: WargaFormProps) {
         await WargaRepository.create(formData);
       }
       onClose(true); // close and refresh list
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat menyimpan data");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan data");
       setLoading(false);
     }
   };

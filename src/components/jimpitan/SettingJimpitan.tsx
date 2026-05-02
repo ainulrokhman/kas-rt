@@ -121,7 +121,7 @@ export default function SettingJimpitan({ initialNominal, currentYearMonth, onSa
   );
 }
 
-function SettingsIcon(props: any) {
+function SettingsIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

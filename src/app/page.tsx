@@ -30,14 +30,14 @@ export default async function Home() {
   const yearMonth = getCurrentYearMonth();
   const namaBulan = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
   
-  let stats = {
+  const stats = {
     mingguIni: 0,
     bulanIni: 0,
     totalSeluruhnya: 0
   };
 
   try {
-    const { reports, currentTarget } = await JimpitanService.getLaporanBulanan(yearMonth);
+    const { reports } = await JimpitanService.getLaporanBulanan(yearMonth);
     
     // Hitung total bulan ini
     stats.bulanIni = reports.reduce((sum, r) => sum + r.total_masuk_bulan_ini, 0);

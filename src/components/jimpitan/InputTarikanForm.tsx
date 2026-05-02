@@ -60,9 +60,9 @@ export default function InputTarikanForm({ wargaList, petugasId, selectedDate, d
         setSuccessId(null);
       }, 2000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Detail Error Jimpitan:", error);
-      const msg = error?.message || "Terjadi kesalahan tidak diketahui";
+      const msg = error instanceof Error ? error.message : "Terjadi kesalahan tidak diketahui";
       alert(`Gagal menyimpan: ${msg}\n\nPastikan browser tidak dalam mode Private/Incognito yang memblokir penyimpanan lokal.`);
     } finally {
       setLoadingId(null);

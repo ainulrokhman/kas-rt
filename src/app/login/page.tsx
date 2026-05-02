@@ -72,8 +72,8 @@ export default function LoginPage() {
     try {
       await AuthService.login({ nomor_hp: nomorHp.trim(), pin: pinValue });
       router.replace("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan. Coba lagi.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan. Coba lagi.");
       // Reset PIN on error
       setPin(["", "", "", "", "", ""]);
       pinRefs.current[0]?.focus();

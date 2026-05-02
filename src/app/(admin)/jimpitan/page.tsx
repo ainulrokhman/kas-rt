@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Warga } from "@/types/warga";
 import { WargaRepository } from "@/lib/repositories/wargaRepository";
 import { JimpitanService } from "@/lib/services/jimpitanService";
 import { JimpitanRepository } from "@/lib/repositories/jimpitanRepository";
-import { JimpitanReportRow, JimpitanTransaction } from "@/types/jimpitan";
-import { Calendar, Settings, Wallet, Users, LayoutDashboard, MapPin, CalendarDays } from "lucide-react";
+import { JimpitanReportRow, JimpitanTransaction, JimpitanMonthTarget } from "@/types/jimpitan";
+import { Calendar, Settings, Users, LayoutDashboard, MapPin, CalendarDays } from "lucide-react";
 
 import InputTarikanForm from "@/components/jimpitan/InputTarikanForm";
 import LaporanBulananTable from "@/components/jimpitan/LaporanBulananTable";
@@ -17,7 +17,32 @@ import SyncIndicator from "@/components/jimpitan/SyncIndicator";
 
 type Tab = 'TARIK' | 'LAPORAN' | 'SETTING';
 
-export default function JimpitanPage() {
+// Helper Mnghitung Minggu ke-XX dari parameter Date String YYYY-MM-DD (Kamis reference)
+const hitungMingguKeDariTanggal = (dateStr: string) => {
+  if (!dateStr) return 0;
+  const parts = dateStr.split('-');
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]) - 1;
+  const d = parseInt(parts[2]);
+
+  const thursdays = [];
+  const dateC = new Date(y, m, 1);
+  while (dateC.getMonth() === m) {
+    if (dateC.getDay() === 4) thursdays.push(dateC.getDate());
+    dateC.setDate(dateC.getDate() + 1);
+  }
+
+  let mingguKe = thursdays.length > 0 ? thursdays.length : 1;
+  for (let i = 0; i < thursdays.length; i++) {
+    if (d <= thursdays[i]) {
+      mingguKe = i + 1;
+      break;
+    }
+  }
+  return mingguKe;
+};
+
+function JimpitanContent() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) || 'TARIK';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
@@ -31,7 +56,7 @@ export default function JimpitanPage() {
 
   const [wargaList, setWargaList] = useState<Warga[]>([]);
   const [reports, setReports] = useState<JimpitanReportRow[]>([]);
-  const [currentTarget, setCurrentTarget] = useState<any>(null);
+  const [currentTarget, setCurrentTarget] = useState<JimpitanMonthTarget | null>(null);
 
   // Tab Tarikan States
   const [defaultNominal, setDefaultNominal] = useState(2000);
@@ -73,14 +98,7 @@ export default function JimpitanPage() {
     };
   }, []);
 
-  // 1. Fetch Daily Info (Lokasi Tahlil) when tanggalFilter changes
-  useEffect(() => {
-    if (activeTab === 'TARIK' && tanggalFilter) {
-      loadDailyInfo();
-    }
-  }, [activeTab, tanggalFilter]);
-
-  const loadDailyInfo = async () => {
+  const loadDailyInfo = useCallback(async () => {
     try {
       const parts = tanggalFilter.split('-'); // YYYY-MM-DD
       const yMonth = `${parts[0]}-${parts[1]}`;
@@ -95,7 +113,14 @@ export default function JimpitanPage() {
     } catch (e) {
       console.error("Gagal load info harian:", e);
     }
-  };
+  }, [tanggalFilter]);
+
+  // 1. Fetch Daily Info (Lokasi Tahlil) when tanggalFilter changes
+  useEffect(() => {
+    if (activeTab === 'TARIK' && tanggalFilter) {
+      loadDailyInfo();
+    }
+  }, [activeTab, tanggalFilter, loadDailyInfo]);
 
   // 2. Real-time Observer for Daily Transactions
   useEffect(() => {
@@ -132,38 +157,9 @@ export default function JimpitanPage() {
     }
   };
 
-  // Helper Mnghitung Minggu ke-XX dari parameter Date String YYYY-MM-DD (Kamis reference)
-  const hitungMingguKeDariTanggal = (dateStr: string) => {
-    const parts = dateStr.split('-');
-    const y = parseInt(parts[0]);
-    const m = parseInt(parts[1]) - 1;
-    const d = parseInt(parts[2]);
 
-    const thursdays = [];
-    const dateC = new Date(y, m, 1);
-    while (dateC.getMonth() === m) {
-      if (dateC.getDay() === 4) thursdays.push(dateC.getDate());
-      dateC.setDate(dateC.getDate() + 1);
-    }
 
-    let mingguKe = thursdays.length > 0 ? thursdays.length : 1;
-    for (let i = 0; i < thursdays.length; i++) {
-      if (d <= thursdays[i]) {
-        mingguKe = i + 1;
-        break;
-      }
-    }
-    return mingguKe;
-  };
-
-  // Laporan logic
-  useEffect(() => {
-    if (activeTab === 'LAPORAN' && monthFilter) {
-      loadReports();
-    }
-  }, [activeTab, monthFilter]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
       const result = await JimpitanService.getLaporanBulanan(monthFilter);
@@ -174,13 +170,20 @@ export default function JimpitanPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [monthFilter]);
+
+  // Laporan logic
+  useEffect(() => {
+    if (activeTab === 'LAPORAN' && monthFilter) {
+      loadReports();
+    }
+  }, [activeTab, monthFilter, loadReports]);
 
   const getThursdaysDates = (yearMonth: string) => {
     if (!yearMonth) return [];
     const [y, m] = yearMonth.split('-');
     const date = new Date(parseInt(y), parseInt(m) - 1, 1);
-    let dates: string[] = [];
+    const dates: string[] = [];
     while (date.getMonth() === parseInt(m) - 1) {
       if (date.getDay() === 4) {
         const d = date.getDate().toString().padStart(2, '0');
@@ -383,5 +386,17 @@ export default function JimpitanPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function JimpitanPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-screen bg-slate-950">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+      </div>
+    }>
+      <JimpitanContent />
+    </Suspense>
   );
 }

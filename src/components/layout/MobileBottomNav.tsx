@@ -7,8 +7,7 @@ import {
   LayoutDashboard, 
   Wallet, 
   Users, 
-  UserCog,
-  History
+  UserCog
 } from "lucide-react";
 
 export function MobileBottomNav() {

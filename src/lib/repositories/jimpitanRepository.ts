@@ -7,7 +7,6 @@ import {
   doc, 
   query, 
   where,
-  orderBy,
   deleteDoc,
   serverTimestamp,
   waitForPendingWrites,
@@ -114,7 +113,7 @@ export class JimpitanRepository {
     const globalSetting = await this.getGlobalSetting();
     
     // Save snapshot 
-    const newTarget: any = {
+    const newTarget: Omit<JimpitanMonthTarget, "id" | "lokasi_tahlil" | "createdAt"> & { createdAt: unknown } = {
       nominal_mingguan: globalSetting.nominal_default,
       total_kamis: total_kamis,
       createdAt: serverTimestamp()

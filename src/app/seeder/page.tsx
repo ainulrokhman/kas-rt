@@ -8,8 +8,6 @@ import {
   query,
   where,
   serverTimestamp,
-  writeBatch,
-  doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
@@ -168,8 +166,8 @@ export default function SeederPage() {
       });
 
       setIsDone(true);
-    } catch (err: any) {
-      pushLog(setter, `✗ ERROR: ${err.message}`, "error");
+    } catch (err: unknown) {
+      pushLog(setter, `✗ ERROR: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`, "error");
     } finally {
       setIsRunning(false);
     }

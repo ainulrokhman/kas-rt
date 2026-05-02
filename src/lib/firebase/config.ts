@@ -1,9 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { 
-  initializeFirestore, 
-  persistentLocalCache, 
+import {
+  initializeFirestore,
+  persistentLocalCache,
   persistentMultipleTabManager,
-  Firestore
+  Firestore,
+  getFirestore
 } from "firebase/firestore";
 
 // Konfigurasi aplikasi web Firebase Anda
@@ -30,21 +31,18 @@ if (typeof window !== "undefined") {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     });
     console.log("Firebase Firestore initialized with offline persistence.");
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Jika error karena sudah terinisialisasi (HMR), ambil instance yang sudah ada
-    if (err.message && err.message.includes("already been started")) {
-      const { getFirestore } = require("firebase/firestore");
+    if (err instanceof Error && err.message.includes("already been started")) {
       db = getFirestore(app);
       console.log("Firestore connected to existing instance (HMR).");
     } else {
       console.error("Gagal menginisialisasi Firestore offline persistence:", err);
-      const { getFirestore } = require("firebase/firestore");
       db = getFirestore(app);
     }
   }
 } else {
   // Fallback untuk SSR (Server Side Rendering)
-  const { getFirestore } = require("firebase/firestore");
   db = getFirestore(app);
 }
 

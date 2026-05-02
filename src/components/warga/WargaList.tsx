@@ -20,8 +20,8 @@ export default function WargaList() {
       const data = await WargaRepository.getAll();
       setWarga(data);
       setError("");
-    } catch (err: any) {
-      setError(err.message || "Gagal mengambil data warga");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal mengambil data warga");
     } finally {
       setLoading(false);
     }
@@ -36,8 +36,8 @@ export default function WargaList() {
     try {
       await WargaRepository.delete(id);
       fetchWarga();
-    } catch (err: any) {
-      alert("Gagal menghapus: " + err.message);
+    } catch (err: unknown) {
+      alert("Gagal menghapus: " + (err instanceof Error ? err.message : "Terjadi kesalahan"));
     }
   };
 

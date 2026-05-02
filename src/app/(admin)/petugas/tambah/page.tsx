@@ -76,8 +76,8 @@ export default function TambahPetugasPage() {
     try {
       await PetugasService.create(selectedWarga.id, jabatan, pinValue);
       router.push("/petugas");
-    } catch (err: any) {
-      setError(err.message || "Gagal menambah petugas.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal menambah petugas.");
     } finally {
       setIsSubmitting(false);
     }

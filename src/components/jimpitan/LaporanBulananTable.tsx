@@ -1,6 +1,6 @@
 "use client";
 
-import { JimpitanReportRow } from "@/types/jimpitan";
+import { JimpitanReportRow, JimpitanMonthTarget } from "@/types/jimpitan";
 import { useState } from "react";
 import {
   ChevronDown,
@@ -11,7 +11,7 @@ import {
 interface Props {
   reports: JimpitanReportRow[];
   totalKamis: number;
-  currentTarget?: any;
+  currentTarget?: JimpitanMonthTarget | null;
   thursdaysDates?: string[];
   onLocationChange?: (minggu_ke: number, loc: string) => void;
 }
@@ -35,7 +35,7 @@ function SummaryBar({
   reports: JimpitanReportRow[];
   weeksHeader: number[];
   thursdaysDates?: string[];
-  currentTarget?: any;
+  currentTarget?: JimpitanMonthTarget | null;
   onLocationChange?: (minggu_ke: number, loc: string) => void;
 }) {
   const totalPerWeek = weeksHeader.map((w) => {
@@ -90,11 +90,9 @@ function SummaryBar({
 
 function MobileCard({
   row,
-  weeksHeader,
   thursdaysDates,
 }: {
   row: JimpitanReportRow;
-  weeksHeader: number[];
   thursdaysDates?: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -194,13 +192,9 @@ function MobileCard({
 function DesktopRow({
   row,
   idx,
-  weeksHeader,
-  thursdaysDates,
 }: {
   row: JimpitanReportRow;
   idx: number;
-  weeksHeader: number[];
-  thursdaysDates?: string[];
 }) {
   return (
     <tr
@@ -299,7 +293,6 @@ export default function LaporanBulananTable({
           <MobileCard
             key={row.warga_id}
             row={row}
-            weeksHeader={weeksHeader}
             thursdaysDates={thursdaysDates}
           />
         ))}
@@ -344,8 +337,6 @@ export default function LaporanBulananTable({
                   key={row.warga_id}
                   row={row}
                   idx={idx}
-                  weeksHeader={weeksHeader}
-                  thursdaysDates={thursdaysDates}
                 />
               ))}
             </tbody>

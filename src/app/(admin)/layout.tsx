@@ -28,7 +28,7 @@ export default function AdminLayout({
   React.useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
+        for (const registration of registrations) {
           registration.unregister();
           console.log("Stale Service Worker unregistered to prevent CSP block.");
         }

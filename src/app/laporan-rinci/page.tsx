@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { JimpitanService } from "@/lib/services/jimpitanService";
-import { JimpitanReportRow } from "@/types/jimpitan";
+import { JimpitanReportRow, JimpitanMonthTarget } from "@/types/jimpitan";
 import LaporanBulananTable from "@/components/jimpitan/LaporanBulananTable";
 import { LogOut, ChevronLeft, Calendar } from "lucide-react";
 
@@ -16,7 +16,7 @@ export default function LaporanRinciPage() {
   
   // Data State
   const [reports, setReports] = useState<JimpitanReportRow[]>([]);
-  const [currentTarget, setCurrentTarget] = useState<any>(null);
+  const [currentTarget, setCurrentTarget] = useState<JimpitanMonthTarget | null>(null);
   const [monthFilter, setMonthFilter] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -33,14 +33,7 @@ export default function LaporanRinciPage() {
     setIsCheckingSession(false);
   }, []);
 
-  // Fetch data laporan jika sudah authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchLaporan();
-    }
-  }, [isAuthenticated, monthFilter]);
-
-  const fetchLaporan = async () => {
+  const fetchLaporan = useCallback(async () => {
     setIsDataLoading(true);
     try {
       const { reports, currentTarget } = await JimpitanService.getLaporanBulanan(monthFilter);
@@ -51,7 +44,14 @@ export default function LaporanRinciPage() {
     } finally {
       setIsDataLoading(false);
     }
-  };
+  }, [monthFilter]);
+
+  // Fetch data laporan jika sudah authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchLaporan();
+    }
+  }, [isAuthenticated, monthFilter, fetchLaporan]);
 
   const handleKeyPress = (num: string) => {
     if (pin.length < 6) {
@@ -64,7 +64,7 @@ export default function LaporanRinciPage() {
     setPin((prev) => prev.slice(0, -1));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (pin.length !== 6) {
       setError("PIN harus 6 digit");
       return;
@@ -87,11 +87,12 @@ export default function LaporanRinciPage() {
         setPin("");
       }
     } catch (err) {
+      console.error("Auth error:", err);
       setError("Terjadi kesalahan koneksi");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pin]);
 
   const handleLogout = () => {
     document.cookie = "kas-rt-public-session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
@@ -103,7 +104,7 @@ export default function LaporanRinciPage() {
     if (pin.length === 6) {
       handleSubmit();
     }
-  }, [pin]);
+  }, [pin, handleSubmit]);
 
   if (isCheckingSession) {
     return (
@@ -241,7 +242,7 @@ export default function LaporanRinciPage() {
 
         <div className="bg-indigo-500/5 p-6 rounded-[2rem] border border-indigo-500/10 text-center">
           <p className="text-xs text-slate-500 font-medium italic leading-relaxed">
-            "Seluruh data di atas adalah riwayat setoran jimpitan warga yang tercatat secara digital oleh pengurus RT."
+            &quot;Seluruh data di atas adalah riwayat setoran jimpitan warga yang tercatat secara digital oleh pengurus RT.&quot;
           </p>
         </div>
       </div>

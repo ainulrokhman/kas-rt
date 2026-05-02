@@ -3,11 +3,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ArrowUpRight,
-  ArrowDownRight,
   Users,
   Wallet,
   UserCog,
-  ChevronRight,
   RefreshCw,
   TrendingUp,
   CalendarCheck,
@@ -76,42 +74,14 @@ interface RecentTrx {
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-function SkeletonCard() {
-  return (
-    <div className="bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl animate-pulse">
-      <div className="flex justify-between items-start mb-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-800" />
-      </div>
-      <div className="space-y-2">
-        <div className="h-3 w-28 bg-slate-800 rounded" />
-        <div className="h-7 w-36 bg-slate-700 rounded" />
-        <div className="h-3 w-24 bg-slate-800 rounded" />
-      </div>
-    </div>
-  );
-}
 
-function SkeletonRow() {
-  return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/20 animate-pulse">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-slate-700" />
-        <div className="space-y-1.5">
-          <div className="h-3 w-36 bg-slate-700 rounded" />
-          <div className="h-2.5 w-20 bg-slate-800 rounded" />
-        </div>
-      </div>
-      <div className="h-4 w-24 bg-slate-700 rounded" />
-    </div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentTrx, setRecentTrx] = useState<RecentTrx[]>([]);
 
@@ -162,8 +132,8 @@ export default function DashboardPage() {
         progressPersen: 0, // Tidak lagi digunakan di UI baru
       });
       setRecentTrx(latestTrx);
-    } catch (err: any) {
-      setError(err.message ?? "Gagal memuat data dashboard.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal memuat data dashboard.");
     } finally {
       setIsLoading(false);
     }

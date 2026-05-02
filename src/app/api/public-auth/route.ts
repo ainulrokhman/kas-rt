@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Public Auth Error:", error);
     return NextResponse.json(
       { message: "Terjadi kesalahan internal." },

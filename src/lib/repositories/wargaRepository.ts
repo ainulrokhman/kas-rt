@@ -66,7 +66,7 @@ export class WargaRepository {
   static async update(id: string, data: Partial<WargaInput>): Promise<void> {
     if (!db) throw new Error("Firestore instance belum terinisialisasi");
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: serverTimestamp(),
     };
 

@@ -1,13 +1,13 @@
 import { JimpitanRepository } from '@/lib/repositories/jimpitanRepository';
 import { WargaRepository } from '@/lib/repositories/wargaRepository';
-import { JimpitanReportRow, JimpitanWeeklyStatus } from '@/types/jimpitan';
+import { JimpitanReportRow, JimpitanWeeklyStatus, JimpitanMonthTarget } from '@/types/jimpitan';
 
 export class JimpitanService {
   /**
    * Men-generate laporan bulanan Jimpitan 
    * @param targetYearMonth format "YYYY-MM"
    */
-  static async getLaporanBulanan(targetYearMonth: string): Promise<{ reports: JimpitanReportRow[], currentTarget: any }> {
+  static async getLaporanBulanan(targetYearMonth: string): Promise<{ reports: JimpitanReportRow[], currentTarget: JimpitanMonthTarget | null }> {
     // 1. Dapatkan daftar warga
     const wargasList = await WargaRepository.getAll();
     
@@ -72,7 +72,7 @@ export class JimpitanService {
 
       // 6c. Saldo yang bisa dipakai untuk bulan ini
       // Saldo = Total Kas Masuk - Total Tagihan Masa Lalu
-      let saldoTersediaBulanIni = totalUangMasuk - totalTagihanLalu;
+      const saldoTersediaBulanIni = totalUangMasuk - totalTagihanLalu;
 
       // Jika saldoTersediaBulanIni negatif, artinya dia punya tunggakan dari bulan sebelumnya.
       // Jika positif, kita alokasikan ke minggu-minggu di bulan ini.
@@ -98,8 +98,8 @@ export class JimpitanService {
 
       for (let i = 1; i <= currentMonthTarget.total_kamis; i++) {
         // Tentukan batas rentang tanggal minggu ke-i bersangkutan
-        let dateStart = i === 1 ? 1 : thursdays[i-2] + 1;
-        let dateEnd = i === currentMonthTarget.total_kamis ? 31 : thursdays[i-1];
+        const dateStart = i === 1 ? 1 : thursdays[i-2] + 1;
+        const dateEnd = i === currentMonthTarget.total_kamis ? 31 : thursdays[i-1];
         
         // Cek total transaksi di minggu ini
         let nominalAsliMingguIni = 0;

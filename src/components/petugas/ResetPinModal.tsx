@@ -74,8 +74,8 @@ export function ResetPinModal({
       await PetugasService.resetPin(petugas.id, pinValue);
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Gagal mereset PIN.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal mereset PIN.");
     } finally {
       setIsLoading(false);
     }

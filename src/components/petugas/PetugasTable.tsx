@@ -3,7 +3,6 @@
 import React from "react";
 import { PetugasWithWarga, JabatanPetugas } from "@/types/petugas";
 import {
-  UserCog,
   Phone,
   ToggleLeft,
   ToggleRight,

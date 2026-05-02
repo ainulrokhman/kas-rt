@@ -15,7 +15,6 @@ export default function PetugasPage() {
   const [error, setError] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<PetugasWithWarga | null>(null);
   const [resetPinTarget, setResetPinTarget] = useState<PetugasWithWarga | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -23,8 +22,8 @@ export default function PetugasPage() {
     try {
       const result = await PetugasService.getAll();
       setData(result);
-    } catch (err: any) {
-      setError(err.message || "Gagal memuat data petugas.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal memuat data petugas.");
     } finally {
       setIsLoading(false);
     }
@@ -35,14 +34,11 @@ export default function PetugasPage() {
   }, [fetchData]);
 
   const handleToggleActive = async (petugas: PetugasWithWarga) => {
-    setActionLoading(petugas.id);
     try {
       await PetugasService.toggleActive(petugas.id, !petugas.is_active);
       await fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setActionLoading(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal update status.");
     }
   };
 
