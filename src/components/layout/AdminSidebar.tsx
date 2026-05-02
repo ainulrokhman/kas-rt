@@ -29,8 +29,14 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Warga", href: "/warga", icon: Users },
-    { name: "Jimpitan", href: "/jimpitan", icon: Wallet },
-    { name: "Petugas", href: "/petugas", icon: UserCog },
+    { 
+      name: user?.jabatan === "Penarik Jimpitan" ? "Jimpitan" : "Laporan Kas", 
+      href: "/jimpitan", 
+      icon: Wallet 
+    },
+    ...(user?.jabatan !== "Penarik Jimpitan" 
+      ? [{ name: "Petugas", href: "/petugas", icon: UserCog }]
+      : []),
   ];
 
   const activeClass =

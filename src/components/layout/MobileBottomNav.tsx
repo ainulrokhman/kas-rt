@@ -9,15 +9,23 @@ import {
   Users, 
   UserCog
 } from "lucide-react";
+import { useAuth } from "@/lib/context/AuthContext";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const navItems = [
     { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Jimpitan", href: "/jimpitan", icon: Wallet },
+    { 
+      label: user?.jabatan === "Penarik Jimpitan" ? "Jimpitan" : "Laporan", 
+      href: "/jimpitan", 
+      icon: Wallet 
+    },
     { label: "Warga", href: "/warga", icon: Users },
-    { label: "Petugas", href: "/petugas", icon: UserCog },
+    ...(user?.jabatan !== "Penarik Jimpitan"
+      ? [{ label: "Petugas", href: "/petugas", icon: UserCog }]
+      : []),
   ];
 
   return (

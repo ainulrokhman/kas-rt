@@ -6,7 +6,10 @@ import { WargaRepository } from "@/lib/repositories/wargaRepository";
 import { Pencil, Trash2, Search, Plus, UserPlus } from "lucide-react";
 import WargaForm from "./WargaForm";
 
+import { useAuth } from "@/lib/context/AuthContext";
+
 export default function WargaList() {
+  const { user } = useAuth();
   const [warga, setWarga] = useState<Warga[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,12 +70,14 @@ export default function WargaList() {
         <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
           <UserPlus className="w-6 h-6 text-indigo-400" /> Data Warga
         </h1>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
-        >
-          <Plus className="w-4 h-4" /> Tambah Warga
-        </button>
+        {user?.jabatan !== 'Penarik Jimpitan' && (
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
+          >
+            <Plus className="w-4 h-4" /> Tambah Warga
+          </button>
+        )}
       </div>
 
       <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 lg:p-6 backdrop-blur-xl">
@@ -104,7 +109,9 @@ export default function WargaList() {
                 <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Nama Lengkap</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Jenis Kelamin</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Nomor HP</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                {user?.jabatan !== 'Penarik Jimpitan' && (
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
@@ -140,24 +147,26 @@ export default function WargaList() {
                         </a>
                       ) : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(w)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all"
-                          aria-label="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(w.id, w.nama_lengkap)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {user?.jabatan !== "Penarik Jimpitan" && (
+                      <td className="px-4 py-3 text-sm text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(w)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(w.id, w.nama_lengkap)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -188,23 +197,25 @@ export default function WargaList() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center bg-slate-900/60 rounded-lg p-0.5 border border-slate-800">
-                    <button
-                      onClick={() => openEdit(w)}
-                      className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-md transition-all touch-manipulation"
-                      aria-label="Edit"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <div className="w-[1px] h-4 bg-slate-800"></div>
-                    <button
-                      onClick={() => handleDelete(w.id, w.nama_lengkap)}
-                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-md transition-all touch-manipulation"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {user?.jabatan !== "Penarik Jimpitan" && (
+                    <div className="flex items-center bg-slate-900/60 rounded-lg p-0.5 border border-slate-800">
+                      <button
+                        onClick={() => openEdit(w)}
+                        className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-md transition-all touch-manipulation"
+                        aria-label="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <div className="w-[1px] h-4 bg-slate-800"></div>
+                      <button
+                        onClick={() => handleDelete(w.id, w.nama_lengkap)}
+                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-md transition-all touch-manipulation"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between text-sm">

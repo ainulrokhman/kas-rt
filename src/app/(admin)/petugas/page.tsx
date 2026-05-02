@@ -9,7 +9,20 @@ import { PetugasTable } from "@/components/petugas/PetugasTable";
 import { PetugasFormModal } from "@/components/petugas/PetugasFormModal";
 import { ResetPinModal } from "@/components/petugas/ResetPinModal";
 
+import { useAuth } from "@/lib/context/AuthContext";
+import { useRouter } from "next/navigation";
+
 export default function PetugasPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // Guard: Penarik tidak boleh akses halaman petugas
+  useEffect(() => {
+    if (user && user.jabatan === "Penarik Jimpitan") {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
   const [data, setData] = useState<PetugasWithWarga[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

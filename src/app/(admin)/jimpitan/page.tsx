@@ -14,6 +14,7 @@ import LaporanBulananTable from "@/components/jimpitan/LaporanBulananTable";
 import SettingJimpitan from "@/components/jimpitan/SettingJimpitan";
 import SettingSistem from "@/components/admin/SettingSistem";
 import SyncIndicator from "@/components/jimpitan/SyncIndicator";
+import { useAuth } from "@/lib/context/AuthContext";
 
 type Tab = 'TARIK' | 'LAPORAN' | 'SETTING';
 
@@ -43,9 +44,20 @@ const hitungMingguKeDariTanggal = (dateStr: string) => {
 };
 
 function JimpitanContent() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get("tab") as Tab) || 'TARIK';
+  const isPenarik = user?.jabatan === 'Penarik Jimpitan';
+  const initialTab = (searchParams.get("tab") as Tab) || (isPenarik ? 'TARIK' : 'LAPORAN');
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  // RBAC: Penarik tidak boleh ke SETTING, Lainnya tidak boleh ke TARIK
+  useEffect(() => {
+    if (user?.jabatan === 'Penarik Jimpitan' && activeTab === 'SETTING') {
+      setActiveTab('TARIK');
+    } else if (user && user.jabatan !== 'Penarik Jimpitan' && activeTab === 'TARIK') {
+      setActiveTab('LAPORAN');
+    }
+  }, [user, activeTab]);
 
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab;
@@ -223,14 +235,16 @@ function JimpitanContent() {
 
       {/* Animated Tabs */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-1.5 flex relative shadow-inner max-w-md w-full">
-        <button
-          onClick={() => setActiveTab('TARIK')}
-          className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'TARIK' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
-            }`}
-        >
-          <Users className="w-4 h-4 mb-1" />
-          Tarikan
-        </button>
+        {isPenarik && (
+          <button
+            onClick={() => setActiveTab('TARIK')}
+            className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'TARIK' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
+              }`}
+          >
+            <Users className="w-4 h-4 mb-1" />
+            Tarikan
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab('LAPORAN')}
@@ -240,20 +254,25 @@ function JimpitanContent() {
           <Calendar className="w-4 h-4 mb-1" />
           Laporan
         </button>
-
-        <button
-          onClick={() => setActiveTab('SETTING')}
-          className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'SETTING' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
-            }`}
-        >
-          <Settings className="w-4 h-4 mb-1" />
-          Setting
-        </button>
+        
+        {user?.jabatan !== 'Penarik Jimpitan' && (
+          <button
+            onClick={() => setActiveTab('SETTING')}
+            className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'SETTING' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
+              }`}
+          >
+            <Settings className="w-4 h-4 mb-1" />
+            Setting
+          </button>
+        )}
 
         {/* Tab Glider Background */}
         <div
-          className="absolute top-1.5 bottom-1.5 w-[calc(33.33%-4px)] bg-slate-800 rounded-xl transition-all duration-300 ease-out border border-slate-700 shadow-md"
-          style={{ left: activeTab === 'TARIK' ? '6px' : activeTab === 'LAPORAN' ? 'calc(33.33% + 2px)' : 'calc(66.66% - 2px)' }}
+          className="absolute top-1.5 bottom-1.5 bg-slate-800 rounded-xl transition-all duration-300 ease-out border border-slate-700 shadow-md"
+          style={{ 
+            width: 'calc(50% - 4px)',
+            left: (isPenarik && activeTab === 'TARIK') || (!isPenarik && activeTab === 'LAPORAN') ? '6px' : 'calc(50% + 2px)'
+          }}
         />
       </div>
 
@@ -319,7 +338,7 @@ function JimpitanContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InputTarikanForm
                 wargaList={wargaList}
-                petugasId="admin"
+                petugasId={user?.petugas_id || "unknown"}
                 selectedDate={tanggalFilter}
                 dailyTransactions={dailyTransactions}
                 defaultNominal={defaultNominal}
@@ -362,6 +381,7 @@ function JimpitanContent() {
                 totalKamis={getThursdaysDates(monthFilter).length}
                 thursdaysDates={getThursdaysDates(monthFilter)}
                 currentTarget={currentTarget}
+                monthFilter={monthFilter}
                 onLocationChange={async (minggu_ke: number, loc: string) => {
                   if (!currentTarget) return;
                   const newLocs = { ...(currentTarget.lokasi_tahlil || {}), [minggu_ke]: loc };

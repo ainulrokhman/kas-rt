@@ -237,6 +237,7 @@ export default function LaporanRinciPage() {
                 reports={reports} 
                 totalKamis={currentTarget?.total_kamis || 0}
                 thursdaysDates={[]} // Bisa ditingkatkan jika ingin menampilkan tanggal spesifik
+                monthFilter={monthFilter}
             />
         )}
 

@@ -5,8 +5,11 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
+  FileSpreadsheet,
+  FileText,
   Wallet,
 } from "lucide-react";
+import { exportToExcel, exportToPDF } from "@/lib/utils/exportUtils";
 
 interface Props {
   reports: JimpitanReportRow[];
@@ -14,6 +17,7 @@ interface Props {
   currentTarget?: JimpitanMonthTarget | null;
   thursdaysDates?: string[];
   onLocationChange?: (minggu_ke: number, loc: string) => void;
+  monthFilter?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -252,8 +256,33 @@ export default function LaporanBulananTable({
   currentTarget,
   thursdaysDates,
   onLocationChange,
+  monthFilter,
 }: Props) {
   const weeksHeader = Array.from({ length: totalKamis }, (_, i) => i + 1);
+
+  // Derive month label for export
+  const getMonthLabel = () => {
+    if (!monthFilter) return "Laporan";
+    const [y, m] = monthFilter.split("-");
+    return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("id-ID", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const handleExportExcel = () => {
+    const labels = thursdaysDates && thursdaysDates.length > 0 
+      ? thursdaysDates 
+      : weeksHeader.map(w => `Minggu ${w}`);
+    exportToExcel(reports, labels, getMonthLabel());
+  };
+
+  const handleExportPDF = () => {
+    const labels = thursdaysDates && thursdaysDates.length > 0 
+      ? thursdaysDates 
+      : weeksHeader.map(w => `Minggu ${w}`);
+    exportToPDF(reports, labels, getMonthLabel(), currentTarget);
+  };
 
   // Summary stats
   const totalMasuk = reports.reduce((s, r) => s + r.total_masuk_bulan_ini, 0);
@@ -271,19 +300,39 @@ export default function LaporanBulananTable({
 
   return (
     <div className="space-y-4">
-      {/* ── Summary chips ── */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl p-3 text-center col-span-1">
-          <p className="text-xs text-slate-500 mb-1">Total Masuk</p>
-          <p className="text-sm font-bold text-emerald-400">
-            Rp {formatRupiah(totalMasuk)}
-          </p>
+      {/* ── Summary chips & Export Actions ── */}
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl p-3 text-center col-span-1">
+            <p className="text-xs text-slate-500 mb-1">Total Masuk</p>
+            <p className="text-sm font-bold text-emerald-400">
+              Rp {formatRupiah(totalMasuk)}
+            </p>
+          </div>
+          <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl p-3 text-center col-span-1">
+            <p className="text-xs text-slate-500 mb-1">Warga Terdata</p>
+            <p className="text-sm font-bold text-indigo-400">
+              {reports.length} Warga
+            </p>
+          </div>
         </div>
-        <div className="bg-slate-900/60 border border-slate-800/50 rounded-xl p-3 text-center col-span-1">
-          <p className="text-xs text-slate-500 mb-1">Warga Terdata</p>
-          <p className="text-sm font-bold text-indigo-400">
-            {reports.length} Warga
-          </p>
+
+        {/* Export Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-2 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 text-emerald-400 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Export Excel
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center justify-center gap-2 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+          >
+            <FileText className="w-4 h-4" />
+            Export PDF
+          </button>
         </div>
       </div>
 

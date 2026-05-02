@@ -149,11 +149,17 @@ export default function DashboardPage() {
   const namaBulan = new Date(Number(tahun), Number(bulan) - 1, 1).toLocaleDateString("id-ID", { month: "long" });
 
   const menuItems = [
-    { label: "Tarik Jimpitan", href: "/jimpitan?tab=TARIK", icon: Wallet, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" },
+    ...(user?.jabatan === "Penarik Jimpitan" 
+      ? [{ label: "Tarik Jimpitan", href: "/jimpitan?tab=TARIK", icon: Wallet, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" }]
+      : []),
     { label: "Data Warga", href: "/warga", icon: Users, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
     { label: "Laporan Kas", href: "/jimpitan?tab=LAPORAN", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
-    { label: "Petugas RT", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
-    { label: "Pengaturan", href: "/jimpitan?tab=SETTING", icon: RefreshCw, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
+    ...(user?.jabatan !== "Penarik Jimpitan" 
+      ? [
+          { label: "Petugas RT", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
+          { label: "Pengaturan", href: "/jimpitan?tab=SETTING", icon: RefreshCw, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
+        ]
+      : []),
   ];
 
   return (
