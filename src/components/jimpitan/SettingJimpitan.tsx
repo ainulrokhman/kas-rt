@@ -6,13 +6,18 @@ import { Save, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface Props {
   initialNominal: number;
+  currentYearMonth: string;
   onSaved: (newNominal: number) => void;
 }
 
-export default function SettingJimpitan({ initialNominal, onSaved }: Props) {
+export default function SettingJimpitan({ initialNominal, currentYearMonth, onSaved }: Props) {
   const [nominal, setNominal] = useState(initialNominal.toString());
+  const [applyToCurrentMonth, setApplyToCurrentMonth] = useState(true);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const [y, m] = currentYearMonth.split("-");
+  const namaBulan = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +30,14 @@ export default function SettingJimpitan({ initialNominal, onSaved }: Props) {
     setLoading(true);
     setSuccess(false);
     try {
+      // 1. Update Global Setting (untuk bulan-bulan mendatang)
       await JimpitanRepository.updateGlobalSetting(val);
+      
+      // 2. Jika dipilih, update juga target bulan berjalan
+      if (applyToCurrentMonth) {
+        await JimpitanRepository.updateMonthTargetNominal(currentYearMonth, val);
+      }
+
       onSaved(val);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -46,47 +58,63 @@ export default function SettingJimpitan({ initialNominal, onSaved }: Props) {
          <div className="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">
             <SettingsIcon className="w-5 h-5" />
          </div>
-         <h3 className="font-semibold text-slate-200 text-lg">Setting Tarif Global</h3>
+         <h3 className="font-semibold text-slate-200 text-lg">Konfigurasi Tarif Jimpitan</h3>
       </div>
       
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-6 mt-4 flex gap-3 text-amber-400/90 text-xs leading-relaxed font-medium">
-         <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-         <p>Perubahan tarif hanya akan memengaruhi target di bulan yang masih belum berjalan. Jika bulan ini sudah ditarik, tidak akan berubah. Laporan masa lalu kebal terhadap perubahan ini.</p>
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 mb-6 mt-4 space-y-3">
+         <div className="flex gap-3 text-amber-400/90 text-xs leading-relaxed font-medium">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>Tarif global digunakan sebagai acuan otomatis saat memasuki bulan baru. Perubahan di sini tidak akan mengubah data transaksi yang sudah tersimpan.</p>
+         </div>
+         
+         <label className="flex items-center gap-3 p-3 bg-slate-950/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-950/60 transition-colors group">
+            <input 
+               type="checkbox" 
+               checked={applyToCurrentMonth}
+               onChange={(e) => setApplyToCurrentMonth(e.target.checked)}
+               className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900"
+            />
+            <div className="flex flex-col">
+               <span className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Terapkan juga untuk bulan {namaBulan}</span>
+               <span className="text-[10px] text-slate-500">Jika dicentang, target mingguan bulan ini akan langsung diperbarui.</span>
+            </div>
+         </label>
       </div>
 
-      <form onSubmit={handleSave} className="flex gap-3 w-full flex-col sm:flex-row">
+      <form onSubmit={handleSave} className="flex gap-4 w-full flex-col sm:flex-row">
         <div className="flex-1">
-           <label className="text-xs text-slate-400 mb-1.5 block font-medium ml-1">Nominal (Rp) / Minggu</label>
+           <label className="text-xs text-slate-400 mb-1.5 block font-bold uppercase tracking-wider ml-1">Nominal / Minggu</label>
            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 font-medium">Rp</span>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 font-bold">Rp</span>
               <input 
                 type="number" 
                 value={nominal}
                 onChange={(e) => setNominal(e.target.value)}
-                className="w-full bg-slate-950/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 focus:outline-none shadow-inner transition-colors"
+                className="w-full bg-slate-950/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 text-sm font-bold rounded-xl pl-10 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 focus:outline-none shadow-inner transition-colors"
+                placeholder="Contoh: 2000"
                 required
               />
            </div>
         </div>
-        <div className="flex items-end mt-2 sm:mt-0">
+        <div className="flex items-end">
            <button 
              type="submit" 
              disabled={loading}
-             className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+             className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
            >
              {loading ? (
                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
              ) : (
                <Save className="w-4 h-4" />
              )}
-             {loading ? 'Menyimpan...' : 'Simpan Setelan'}
+             {loading ? 'Menyimpan...' : 'Update Tarif'}
            </button>
         </div>
       </form>
       
       {success && (
-        <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-2 rounded-lg font-medium flex items-center gap-2 animate-pulse">
-           <CheckCircle2 className="w-4 h-4" /> Konfigurasi berhasil diterapkan secara global!
+        <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-4 py-3 rounded-xl font-bold flex items-center gap-2 animate-pulse shadow-lg shadow-emerald-500/5">
+           <CheckCircle2 className="w-4 h-4" /> Tarif berhasil diperbarui dan diterapkan!
         </div>
       )}
     </div>

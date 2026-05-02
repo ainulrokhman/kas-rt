@@ -4,7 +4,8 @@ import { Warga } from "@/types/warga";
 import { useState } from "react";
 import { JimpitanRepository } from "@/lib/repositories/jimpitanRepository";
 import { JimpitanTransaction } from "@/types/jimpitan";
-import { CheckCircle2, ChevronRight, MapPin, CheckSquare2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, CheckSquare2, Trash2, CloudOff } from "lucide-react";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 interface Props {
   wargaList: Warga[];
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function InputTarikanForm({ wargaList, petugasId, selectedDate, dailyTransactions, defaultNominal, onSuccess }: Props) {
+  const isOnline = useNetworkStatus();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
   const [customNominal, setCustomNominal] = useState<Record<string, string>>({});
@@ -58,9 +60,27 @@ export default function InputTarikanForm({ wargaList, petugasId, selectedDate, d
         setSuccessId(null);
       }, 2000);
 
+    } catch (error: any) {
+      console.error("Detail Error Jimpitan:", error);
+      const msg = error?.message || "Terjadi kesalahan tidak diketahui";
+      alert(`Gagal menyimpan: ${msg}\n\nPastikan browser tidak dalam mode Private/Incognito yang memblokir penyimpanan lokal.`);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleDelete = async (wargaId: string, transactions: JimpitanTransaction[]) => {
+    if (!confirm("Hapus semua transaksi jimpitan warga ini untuk hari ini?")) return;
+    
+    setLoadingId(wargaId);
+    try {
+      for (const tx of transactions) {
+        await JimpitanRepository.deleteTransaction(tx.id);
+      }
+      onSuccess();
     } catch (error) {
       console.error(error);
-      alert("Gagal menyimpan transaksi");
+      alert("Gagal menghapus transaksi");
     } finally {
       setLoadingId(null);
     }
@@ -96,8 +116,16 @@ export default function InputTarikanForm({ wargaList, petugasId, selectedDate, d
                   </h3>
                   
                   {sudahBayarHariIni ? (
-                    <div className="text-[11px] text-emerald-400 flex items-center gap-1.5 mt-1 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit">
-                       <CheckSquare2 className="w-3.5 h-3.5" /> Total hari ini: Rp{formatRupiah(totalBayarHariIni)}
+                    <div className="flex flex-col gap-1 mt-1">
+                      <div className="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit">
+                         <CheckSquare2 className="w-3.5 h-3.5" /> Total hari ini: Rp{formatRupiah(totalBayarHariIni)}
+                      </div>
+                      <button 
+                        onClick={() => handleDelete(warga.id, txBeliOrangIni)}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center gap-1 mt-0.5 font-bold transition-colors w-fit"
+                      >
+                         <Trash2 className="w-3 h-3" /> Batalkan Input
+                      </button>
                     </div>
                   ) : (
                     <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
@@ -108,8 +136,16 @@ export default function InputTarikanForm({ wargaList, petugasId, selectedDate, d
             </div>
             
             {successId === warga.id && (
-              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 font-medium animate-pulse">
-                <CheckCircle2 className="w-3 h-3" /> Sukses
+              <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 font-medium animate-pulse border
+                ${isOnline 
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}
+              `}>
+                {isOnline ? (
+                  <><CheckCircle2 className="w-3 h-3" /> Sukses</>
+                ) : (
+                  <><CloudOff className="w-3 h-3" /> Tercatat Offline</>
+                )}
               </span>
             )}
           </div>
@@ -118,9 +154,10 @@ export default function InputTarikanForm({ wargaList, petugasId, selectedDate, d
             <button 
               disabled={loadingId === warga.id}
               onClick={() => handlePay(warga.id, defaultNominal)}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-700/80 hover:border-indigo-500/50 text-slate-300 hover:text-indigo-300 px-3 py-2 rounded-xl text-sm font-medium transition-all min-w-[65px] disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none justify-center flex items-center shadow-sm"
+              className="bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-400 px-3 py-2 rounded-xl text-sm font-bold transition-all min-w-[85px] disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none justify-center flex items-center shadow-sm gap-1.5"
             >
-              + {defaultNominal/1000}k
+               <span className="text-[10px] uppercase opacity-60">Tarif:</span>
+               {defaultNominal/1000}k
             </button>
             <button 
               disabled={loadingId === warga.id}

@@ -1,141 +1,294 @@
 "use client";
 
-import React from "react";
-import { ArrowUpRight, ArrowDownRight, Users, Wallet, Activity } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Users,
+  Wallet,
+  UserCog,
+  ChevronRight,
+  RefreshCw,
+  TrendingUp,
+  CalendarCheck,
+} from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/lib/context/AuthContext";
+import { WargaRepository } from "@/lib/repositories/wargaRepository";
+import { PetugasRepository } from "@/lib/repositories/petugasRepository";
+import { JimpitanService } from "@/lib/services/jimpitanService";
+import { JimpitanRepository } from "@/lib/repositories/jimpitanRepository";
+import { Warga } from "@/types/warga";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getCurrentYearMonth(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function formatRupiah(value: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(value);
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 11) return "Selamat pagi";
+  if (hour < 15) return "Selamat siang";
+  if (hour < 18) return "Selamat sore";
+  return "Selamat malam";
+}
+
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const minutes = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
+  if (minutes < 1) return "Baru saja";
+  if (minutes < 60) return `${minutes} menit lalu`;
+  if (hours < 24) return `${hours} jam lalu`;
+  return `${days} hari lalu`;
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface DashboardStats {
+  totalWarga: number;
+  petugasAktif: number;
+  jimpitanBulanIni: number;
+  wargaLunas: number;
+  totalWargaReport: number;
+  progressPersen: number;
+}
+
+interface RecentTrx {
+  id: string;
+  namaWarga: string;
+  nominal: number;
+  tanggal: number;
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function SkeletonCard() {
+  return (
+    <div className="bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl animate-pulse">
+      <div className="flex justify-between items-start mb-4">
+        <div className="w-12 h-12 rounded-xl bg-slate-800" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 w-28 bg-slate-800 rounded" />
+        <div className="h-7 w-36 bg-slate-700 rounded" />
+        <div className="h-3 w-24 bg-slate-800 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/20 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-full bg-slate-700" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-36 bg-slate-700 rounded" />
+          <div className="h-2.5 w-20 bg-slate-800 rounded" />
+        </div>
+      </div>
+      <div className="h-4 w-24 bg-slate-700 rounded" />
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const stats = [
-    {
-        title: "Total Kas Aktif",
-        value: "Rp 12,450,000",
-        change: "+2.5% dibanding bulan lalu",
-        isPositive: true,
-        icon: Wallet,
-        color: "from-emerald-500 to-teal-400"
-    },
-    {
-        title: "Iuran Terkumpul (Bulan ini)",
-        value: "Rp 3,200,000",
-        change: "85% dari target",
-        isPositive: true,
-        icon: ArrowUpRight,
-        color: "from-indigo-500 to-blue-400"
-    },
-    {
-        title: "Pengeluaran (Bulan ini)",
-        value: "Rp 850,000",
-        change: "-10% dibanding bulan lalu",
-        isPositive: false,
-        icon: ArrowDownRight,
-        color: "from-rose-500 to-pink-400"
-    },
-    {
-        title: "Total KK Aktif",
-        value: "42 KK",
-        change: "2 KK baru gabung",
-        isPositive: true,
-        icon: Users,
-        color: "from-amber-500 to-orange-400"
-    }
-  ];
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentTrx, setRecentTrx] = useState<RecentTrx[]>([]);
 
-  const recentTransactions = [
-    { id: 1, text: "Iuran Bulanan - Bpk. Ahmad (A1/12)", date: "Hari ini, 09:30", amount: "+ Rp 100,000", type: "income" },
-    { id: 2, text: "Pembayaran Sampah Komplek", date: "Hari ini, 08:00", amount: "- Rp 350,000", type: "expense" },
-    { id: 3, text: "Iuran Bulanan - Bpk. Budi (B2/04)", date: "Kemarin, 14:15", amount: "+ Rp 100,000", type: "income" },
-    { id: 4, text: "Beli Perlengkapan Pos Satpam", date: "Kemarin, 10:00", amount: "- Rp 150,000", type: "expense" },
+  const fetchDashboard = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const yearMonth = getCurrentYearMonth();
+      const [wargaList, petugasList, jimpitanReport] = await Promise.all([
+        WargaRepository.getAll(),
+        PetugasRepository.getAll(),
+        JimpitanService.getLaporanBulanan(yearMonth),
+      ]);
+
+      const now = Date.now();
+      const fourteenDaysAgo = now - 14 * 24 * 60 * 60 * 1000;
+      const rawTrx = await JimpitanRepository.getTransactionsByDateBound(
+        fourteenDaysAgo,
+        now
+      );
+
+      const wargaMap = new Map<string, Warga>(wargaList.map((w) => [w.id, w]));
+
+      const latestTrx: RecentTrx[] = rawTrx
+        .slice()
+        .reverse()
+        .slice(0, 3) // Cukup 3 saja untuk dashboard mobile
+        .map((t) => ({
+          id: t.id,
+          namaWarga: wargaMap.get(t.warga_id)?.nama_lengkap ?? "Warga",
+          nominal: t.nominal,
+          tanggal: t.tanggal_bayar,
+        }));
+
+      const petugasAktif = petugasList.filter((p) => p.is_active).length;
+      const reports = jimpitanReport.reports;
+      const totalJimpitan = reports.reduce(
+        (sum, r) => sum + r.total_masuk_bulan_ini,
+        0
+      );
+      
+      setStats({
+        totalWarga: wargaList.length,
+        petugasAktif,
+        jimpitanBulanIni: totalJimpitan,
+        wargaLunas: 0, // Tidak lagi digunakan di UI baru
+        totalWargaReport: reports.length,
+        progressPersen: 0, // Tidak lagi digunakan di UI baru
+      });
+      setRecentTrx(latestTrx);
+    } catch (err: any) {
+      setError(err.message ?? "Gagal memuat data dashboard.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const firstName = user?.nama_lengkap?.split(" ")[0] ?? "Petugas";
+  const yearMonth = getCurrentYearMonth();
+  const [tahun, bulan] = yearMonth.split("-");
+  const namaBulan = new Date(Number(tahun), Number(bulan) - 1, 1).toLocaleDateString("id-ID", { month: "long" });
+
+  const menuItems = [
+    { label: "Tarik Jimpitan", href: "/jimpitan?tab=TARIK", icon: Wallet, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" },
+    { label: "Data Warga", href: "/warga", icon: Users, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
+    { label: "Laporan Kas", href: "/jimpitan?tab=LAPORAN", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
+    { label: "Petugas RT", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
+    { label: "Pengaturan", href: "/jimpitan?tab=SETTING", icon: RefreshCw, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
   ];
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            Overview Dashboard
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">Ringkasan kas rukun tetangga per hari ini.</p>
-        </div>
-        <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-indigo-600/30">
-          <Activity size={18} />
-          <span>Buat Laporan</span>
-        </button>
+    <div className="space-y-8 pb-10">
+      {/* ── App Header Style ── */}
+      <div className="relative overflow-hidden bg-slate-900 -mx-4 px-4 pt-6 pb-12 rounded-b-[3rem] border-b border-slate-800 shadow-2xl">
+         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+         
+         <div className="flex items-center justify-between relative z-10">
+            <div className="space-y-1">
+               <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">{getGreeting()}</p>
+               <h1 className="text-2xl font-extrabold text-white tracking-tight">{firstName} 👋</h1>
+            </div>
+            <button 
+               onClick={fetchDashboard}
+               className="p-3 bg-slate-800/50 rounded-2xl border border-slate-700/50 text-slate-300 hover:bg-slate-800 transition-colors"
+            >
+               <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+         </div>
+
+         {/* Mini Stats Card */}
+         <div className="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex justify-between items-center relative z-10 shadow-inner">
+            <div className="space-y-1">
+               <p className="text-slate-400 text-xs font-medium">Kas Terkumpul {namaBulan}</p>
+               <h2 className="text-2xl font-bold text-white tracking-tight">
+                  {isLoading ? "..." : formatRupiah(stats?.jimpitanBulanIni ?? 0)}
+               </h2>
+            </div>
+            <div className="h-10 w-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+               <TrendingUp className="w-5 h-5 text-emerald-400" />
+            </div>
+         </div>
       </div>
 
-      {/* Grid Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-colors">
-            {/* Background Glow */}
-            <div className={`absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br ${stat.color} rounded-full opacity-20 blur-2xl group-hover:opacity-40 transition-opacity`} />
-            
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800/80 border border-slate-700 group-hover:scale-110 transition-transform">
-                <stat.icon className="w-6 h-6 text-slate-200" />
-              </div>
+      {/* ── Main Menu Grid ── */}
+      <div className="space-y-4">
+         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Menu Utama</h3>
+         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {menuItems.map((item, i) => (
+               <Link 
+                  key={i}
+                  href={item.href}
+                  className="group flex flex-col items-center justify-center bg-slate-900 border border-slate-800/50 p-6 rounded-[2rem] hover:bg-slate-800/50 hover:border-slate-700 transition-all duration-300 active:scale-95 shadow-sm"
+               >
+                  <div className={`w-14 h-14 ${item.color} ${item.shadow} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                     <item.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-200 text-center tracking-tight">{item.label}</span>
+               </Link>
+            ))}
+         </div>
+      </div>
+
+      {/* ── Recent Activity ── */}
+      <div className="space-y-4">
+         <div className="flex justify-between items-center px-1">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Aktivitas Terbaru</h3>
+            <Link href="/jimpitan" className="text-xs font-bold text-indigo-400">Lihat Semua</Link>
+         </div>
+
+         <div className="bg-slate-900/50 rounded-3xl border border-slate-800/50 overflow-hidden divide-y divide-slate-800/50">
+            {isLoading ? (
+               [1, 2, 3].map(i => <div key={i} className="p-4 h-16 animate-pulse bg-slate-800/20" />)
+            ) : recentTrx.length === 0 ? (
+               <div className="p-10 text-center text-slate-600 text-sm italic">Belum ada transaksi</div>
+            ) : (
+               recentTrx.map((trx) => (
+                  <div key={trx.id} className="flex items-center justify-between p-4 hover:bg-slate-800/30 transition-colors">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                           <ArrowUpRight className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <div>
+                           <p className="text-sm font-bold text-slate-200">{trx.namaWarga}</p>
+                           <p className="text-[10px] text-slate-500 font-medium">{formatRelativeTime(trx.tanggal)}</p>
+                        </div>
+                     </div>
+                     <p className="text-sm font-black text-emerald-400">+{formatRupiah(trx.nominal)}</p>
+                  </div>
+               ))
+            )}
+         </div>
+      </div>
+
+      {/* ── Quick Stats Footer ── */}
+      <div className="grid grid-cols-2 gap-4">
+         <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+               <Users className="w-4 h-4 text-indigo-400" />
             </div>
-            
             <div>
-              <p className="text-slate-400 text-sm font-medium mb-1">{stat.title}</p>
-              <h3 className="text-2xl font-bold text-white tracking-tight">{stat.value}</h3>
-              <p className={`text-xs mt-2 flex items-center gap-1 ${stat.isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {stat.change}
-              </p>
+               <p className="text-[10px] font-bold text-slate-500 uppercase">Warga</p>
+               <p className="text-sm font-black text-white">{stats?.totalWarga ?? 0} KK</p>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Transactions Card - span 2 cols on wide layout */}
-        <div className="lg:col-span-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/60 rounded-2xl p-5">
-           <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-white">Transaksi Terbaru</h2>
-              <button className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">Lihat Semua</button>
-           </div>
-           
-           <div className="space-y-4">
-             {recentTransactions.map((trx) => (
-               <div key={trx.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 transition-colors cursor-pointer">
-                 <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${trx.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                      {trx.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
-                    </div>
-                    <div>
-                      <h4 className="text-slate-200 font-medium text-sm sm:text-base">{trx.text}</h4>
-                      <p className="text-slate-500 text-xs mt-0.5">{trx.date}</p>
-                    </div>
-                 </div>
-                 <div className={`font-semibold ${trx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                   {trx.amount}
-                 </div>
-               </div>
-             ))}
-           </div>
-        </div>
-
-        {/* Info Card (Status Kas) */}
-        <div className="bg-gradient-to-br from-indigo-900/60 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
-           <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Wallet className="w-32 h-32" />
-           </div>
-           <div>
-             <h3 className="text-lg font-semibold text-indigo-200 mb-2">Kesehatan Kas RT</h3>
-             <p className="text-slate-400 text-sm leading-relaxed">
-               Saldo Kas RT Bulan ini dalam kondisi stabil. Pastikan pengeluaran bulan ini tidak melebihi 70% dari budget agar ada sisa untuk kas darurat.
-             </p>
-           </div>
-           <div className="mt-8">
-              <div className="w-full bg-slate-800 rounded-full h-2.5 mb-2">
-                <div className="bg-gradient-to-r from-indigo-500 to-teal-400 h-2.5 rounded-full" style={{ width: '45%' }}></div>
-              </div>
-              <p className="text-xs text-slate-400 text-right">45% Budget Terpakai</p>
-           </div>
-        </div>
-        
+         </div>
+         <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800/50 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center">
+               <UserCog className="w-4 h-4 text-violet-400" />
+            </div>
+            <div>
+               <p className="text-[10px] font-bold text-slate-500 uppercase">Petugas</p>
+               <p className="text-sm font-black text-white">{stats?.petugasAktif ?? 0} Aktif</p>
+            </div>
+         </div>
       </div>
     </div>
   );

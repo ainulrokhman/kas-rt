@@ -8,7 +8,11 @@ import {
   query, 
   where,
   orderBy,
-  serverTimestamp
+  deleteDoc,
+  serverTimestamp,
+  waitForPendingWrites,
+  onSnapshot,
+  limit
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { 
@@ -52,6 +56,21 @@ export class JimpitanRepository {
       nominal_default: nominal,
       updatedAt: serverTimestamp()
     }, { merge: true });
+  }
+
+  /**
+   * Mendengarkan perubahan Setting Global
+   */
+  static observeGlobalSetting(callback: (setting: JimpitanGlobalSetting) => void): () => void {
+    if (!db) return () => {};
+    const docRef = doc(db, "jimpitan_settings", "global_config");
+    return onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() } as JimpitanGlobalSetting);
+      } else {
+        callback({ id: "global_config", nominal_default: 2000 });
+      }
+    });
   }
 
   /**
@@ -121,6 +140,19 @@ export class JimpitanRepository {
     const docRef = doc(db, "jimpitan_targets", yearMonth);
     await setDoc(docRef, {
       lokasi_tahlil: lokasi_tahlil,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  /**
+   * Mengupdate nominal mingguan untuk target bulan tertentu
+   */
+  static async updateMonthTargetNominal(yearMonth: string, nominal: number): Promise<void> {
+    if (!db) throw new Error("Firestore instance belum terinisialisasi");
+    
+    const docRef = doc(db, "jimpitan_targets", yearMonth);
+    await setDoc(docRef, {
+      nominal_mingguan: nominal,
       updatedAt: serverTimestamp()
     }, { merge: true });
   }
@@ -233,6 +265,7 @@ export class JimpitanRepository {
 
   /**
    * Mengambil semua transaksi pada rentang hari tertentu (berdasarkan timestamp start dan end of day)
+   * [FIXED] Tambahan in-memory sort untuk memastikan urutan data konsisten.
    */
     static async getTransactionsByDateBound(startTs: number, endTs: number): Promise<JimpitanTransaction[]> {
       if (!db) throw new Error("Firestore instance");
@@ -245,7 +278,7 @@ export class JimpitanRepository {
       
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(docSnap => {
+      const results = snapshot.docs.map(docSnap => {
         const data = docSnap.data();
         return {
           id: docSnap.id,
@@ -257,5 +290,75 @@ export class JimpitanRepository {
           createdAt: data.createdAt?.toMillis() || 0
         } as JimpitanTransaction;
       });
+
+      results.sort((a, b) => a.tanggal_bayar - b.tanggal_bayar);
+      return results;
     }
+
+  /**
+   * Mendengarkan transaksi pada rentang hari tertentu (Real-time & Offline-First)
+   */
+  static observeTransactionsByDateBound(startTs: number, endTs: number, callback: (txs: JimpitanTransaction[]) => void): () => void {
+    if (!db) return () => {};
+
+    const q = query(
+      collection(db, "jimpitan_transactions"), 
+      where("tanggal_bayar", ">=", startTs),
+      where("tanggal_bayar", "<=", endTs)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const results = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          warga_id: data.warga_id,
+          petugas_id: data.petugas_id,
+          nominal: data.nominal,
+          tanggal_bayar: data.tanggal_bayar,
+          bulan_tahun: data.bulan_tahun,
+          createdAt: data.createdAt?.toMillis() || 0
+        } as JimpitanTransaction;
+      });
+      results.sort((a, b) => a.tanggal_bayar - b.tanggal_bayar);
+      callback(results);
+    }, (error) => {
+      console.error("Error observing transactions:", error);
+    });
+  }
+
+  /**
+   * Menghapus transaksi berdasarkan ID
+   */
+  static async deleteTransaction(id: string): Promise<void> {
+    if (!db) throw new Error("Firestore instance");
+    const docRef = doc(db, "jimpitan_transactions", id);
+    await deleteDoc(docRef);
+  }
+
+  /**
+   * Menunggu semua proses antrian offline (pending writes) tersinkronisasi dengan server.
+   */
+  static async syncPendingWrites(): Promise<void> {
+    if (!db) throw new Error("Firestore instance belum terinisialisasi");
+    await waitForPendingWrites(db);
+  }
+
+  /**
+   * Mendengarkan apakah ada data yang sedang menunggu untuk diupload (pending writes).
+   * Berguna untuk menampilkan indikator sinkronisasi.
+   */
+  static observePendingWrites(callback: (hasPending: boolean) => void): () => void {
+    if (!db) return () => {};
+
+    // Kita pantau collection transactions, cukup ambil 1 data terbaru saja 
+    // untuk mengecek metadata.hasPendingWrites secara global di collection tersebut.
+    const q = query(collection(db, "jimpitan_transactions"), limit(1));
+    
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.metadata.hasPendingWrites);
+    }, (error) => {
+      console.error("Error observing pending writes:", error);
+    });
+  }
 }

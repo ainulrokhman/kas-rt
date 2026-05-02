@@ -18,29 +18,35 @@ const firebaseConfig = {
 };
 
 // Inisialisasi Firebase App
-// Menggunakan singleton pattern untuk menghindari re-inisialisasi karena Fast Refresh (HMR) oleh Next.js
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-let db: Firestore | null = null;
+// Inisialisasi Firestore
+let db: Firestore;
 
-// Inisialisasi Firestore dengan offline persistence (persistent cache via IndexedDB)
-// Pastikan kode ini hanya berjalan di sisi client/browser, karena persistence IndexedDB 
-// tidak berfungsi / bisa error jika dijalankan di sisi server (SSR)
 if (typeof window !== "undefined") {
   try {
+    // Inisialisasi persistence. Ini akan throw error jika dipanggil 2x (saat Next.js HMR)
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     });
     console.log("Firebase Firestore initialized with offline persistence.");
-  } catch (err) {
-    console.error("Gagal menginisialisasi Firestore offline persistence:", err);
+  } catch (err: any) {
+    // Jika error karena sudah terinisialisasi (HMR), ambil instance yang sudah ada
+    if (err.message && err.message.includes("already been started")) {
+      const { getFirestore } = require("firebase/firestore");
+      db = getFirestore(app);
+      console.log("Firestore connected to existing instance (HMR).");
+    } else {
+      console.error("Gagal menginisialisasi Firestore offline persistence:", err);
+      const { getFirestore } = require("firebase/firestore");
+      db = getFirestore(app);
+    }
   }
 } else {
-  // Fallback inisialisasi Firestore normal di server (SSR), jika diperlukan.
-  // getFirestore() otomatis akan mengambil instance dari default app.
+  // Fallback untuk SSR (Server Side Rendering)
   const { getFirestore } = require("firebase/firestore");
   db = getFirestore(app);
 }
 
-// Ekspor instance untuk digunakan di seluruh aplikasi (Service Layer)
+// Ekspor instance
 export { app, db };
