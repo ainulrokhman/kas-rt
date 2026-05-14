@@ -44,14 +44,14 @@ export default function TabunganPage() {
             className="flex items-center justify-center gap-2 px-4 py-3 bg-rose-600/10 border border-rose-500/50 hover:bg-rose-600/20 text-rose-400 rounded-2xl font-bold transition-all active:scale-95"
           >
             <ArrowDownLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Tarik Masal</span>
+            <span>Pencairan Masal</span>
           </Link>
           <Link 
             href="/tabungan/masal"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
           >
             <ArrowUpRight className="w-5 h-5" />
-            Setor Masal
+            <span>Setor Masal</span>
           </Link>
         </div>
       </div>
@@ -107,9 +107,10 @@ export default function TabunganPage() {
           ))
         ) : filteredAccounts.length > 0 ? (
           filteredAccounts.map((acc) => (
-            <div 
+            <Link 
               key={acc.id}
-              className="bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 p-5 rounded-3xl transition-all group"
+              href={`/tabungan/${acc.id}`}
+              className="bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 p-5 rounded-3xl transition-all group block"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="min-w-0">
@@ -127,15 +128,14 @@ export default function TabunganPage() {
                 <p className="text-xl font-black text-white">
                   Rp {acc.saldo.toLocaleString("id-ID")}
                 </p>
-                <Link
-                  href={`/tabungan/${acc.id}`}
-                  className="p-2 rounded-xl bg-slate-700/50 hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-400 transition-all"
+                <div
+                  className="p-2 rounded-xl bg-slate-700/50 group-hover:bg-indigo-600/20 text-slate-400 group-hover:text-indigo-400 transition-all"
                   title="Detail & Penarikan"
                 >
                   <Info className="w-5 h-5" />
-                </Link>
+                </div>
               </div>
-            </div>
+            </Link>
           ))
         ) : (
           <div className="col-span-full py-20 text-center bg-slate-800/20 rounded-3xl border border-dashed border-slate-700">

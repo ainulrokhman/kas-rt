@@ -157,34 +157,31 @@ export default function TabunganMasalPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 w-full sm:w-auto">
                 {/* Input Nominal */}
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
+                <div className="relative group/input">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 group-focus-within/input:text-indigo-400 transition-colors">Rp</span>
                   <input 
                     type="number"
                     inputMode="numeric"
                     placeholder="0"
                     value={inputs[w.id] || ""}
                     onChange={(e) => handleInputChange(w.id, e.target.value)}
-                    className="w-32 bg-slate-900/50 border border-slate-700 rounded-xl py-2 pl-9 pr-3 text-white text-sm font-bold focus:outline-none focus:border-indigo-500"
+                    className="w-full sm:w-48 bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-9 pr-3 text-white text-base font-black focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                   />
                 </div>
                 
-                {/* Quick Add Buttons */}
-                <div className="flex gap-1">
-                  <button 
-                    onClick={() => addNominal(w.id, 5000)}
-                    className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-bold text-white transition-colors"
-                  >
-                    +5k
-                  </button>
-                  <button 
-                    onClick={() => addNominal(w.id, 10000)}
-                    className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-bold text-white transition-colors"
-                  >
-                    +10k
-                  </button>
+                {/* Quick Add Buttons Grid */}
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[2000, 5000, 10000, 20000, 50000].map(amount => (
+                    <button 
+                      key={amount}
+                      onClick={() => addNominal(w.id, amount)}
+                      className="px-1 py-2 bg-slate-800 hover:bg-indigo-600 border border-slate-700/50 hover:border-indigo-500 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white transition-all active:scale-90 shadow-sm"
+                    >
+                      +{amount >= 1000 ? `${amount/1000}k` : amount}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -193,7 +190,7 @@ export default function TabunganMasalPage() {
       </div>
 
       {/* Floating Summary Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800 z-50">
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800 z-50">
         <div className="container mx-auto max-w-lg flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ringkasan Setoran</p>
