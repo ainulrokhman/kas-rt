@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { JimpitanService } from "@/lib/services/jimpitanService";
 import { JimpitanRepository } from "@/lib/repositories/jimpitanRepository";
-import { Wallet, TrendingUp, Calendar, Users, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, Calendar, Users, ChevronRight, HelpCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -152,7 +152,7 @@ export default async function Home() {
 
         {/* Footer info */}
         <div className="pt-8 text-center">
-           <div className="flex items-center justify-center gap-4 mb-4 text-slate-600">
+           <div className="flex flex-wrap items-center justify-center gap-4 mb-4 text-slate-600">
               <div className="flex items-center gap-1.5">
                  <Users size={14} />
                  <span className="text-[10px] font-bold uppercase tracking-tighter">Transparansi Warga</span>
@@ -162,12 +162,27 @@ export default async function Home() {
                  <Calendar size={14} />
                  <span className="text-[10px] font-bold uppercase tracking-tighter">Update Real-time</span>
               </div>
+              <div className="w-1 h-1 bg-slate-800 rounded-full" />
+              <Link href="/bantuan" className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 transition-colors">
+                 <span className="text-[10px] font-black uppercase tracking-tighter">Bantuan & FAQ</span>
+              </Link>
            </div>
            <p className="text-[10px] text-slate-600 font-medium leading-relaxed opacity-60">
              Dikelola oleh Pengurus RT setempat untuk <br /> mewujudkan lingkungan yang jujur dan aman.
            </p>
         </div>
       </div>
+
+      {/* Floating Help Button */}
+      <Link
+        href="/bantuan"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-4 rounded-2xl bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 hover:bg-indigo-500 transition-all active:scale-95 group"
+      >
+        <HelpCircle className="w-6 h-6" />
+        <span className="hidden sm:inline-block font-bold text-sm">
+          Bantuan
+        </span>
+      </Link>
     </main>
   );
 }

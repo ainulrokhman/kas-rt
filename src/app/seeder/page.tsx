@@ -33,6 +33,60 @@ const PETUGAS_SEED = [
   { warga_index: 4, jabatan: "Penarik Jimpitan" }, // Eko Prasetyo
 ] as const;
 
+const FAQ_SEED = [
+  // --- PUBLIC ---
+  {
+    category: "umum",
+    question: "Bagaimana cara melihat laporan keuangan secara rinci?",
+    answer: "Anda dapat mengakses menu 'Laporan Rinci' di halaman utama. Gunakan filter bulan atau tahun untuk melihat riwayat transaksi secara transparan.",
+    order: 1
+  },
+  {
+    category: "umum",
+    question: "Bagaimana cara mendapatkan PIN untuk akses laporan?",
+    answer: "PIN untuk akses laporan rinci dapat Anda peroleh melalui Pengurus RT atau melihat informasi terbaru yang dibagikan di grup WhatsApp warga.",
+    order: 2
+  },
+  // --- PENGURUS ---
+  {
+    category: "pengurus",
+    question: "Bagaimana cara memasukkan data transaksi Kas Keluar atau Kas Masuk?",
+    answer: "Masuk ke Dashboard Petugas, pilih menu 'Kas', klik tombol 'Tambah Transaksi' (+). Pilih jenis transaksi (Masuk/Keluar), masukkan nominal, kategori, dan keterangan, lalu simpan.",
+    order: 3
+  },
+  {
+    category: "pengurus",
+    question: "Bagaimana cara menginput data warga baru?",
+    answer: "Buka menu 'Data Warga', klik ikon tambah, masukkan informasi detail warga (Nama, Alamat, Status), dan simpan. Data ini akan otomatis sinkron untuk fitur Jimpitan dan Kas.",
+    order: 4
+  },
+  {
+    category: "pengurus",
+    question: "Bagaimana cara mengatur atau mengubah PIN Petugas?",
+    answer: "Buka menu 'Profil' atau 'Pengaturan', pilih 'Ubah PIN Petugas'. Gunakan 6 digit angka yang mudah diingat namun aman.",
+    order: 5
+  },
+  {
+    category: "pengurus",
+    question: "Bagaimana cara mengatur PIN Publik (untuk warga)?",
+    answer: "Pengaturan PIN Publik terdapat di menu 'Sistem' atau 'Pengaturan Laporan'. PIN ini yang nantinya akan dibagikan kepada warga untuk melihat laporan rinci.",
+    order: 6
+  },
+  {
+    category: "pengurus",
+    question: "Bagaimana cara mengecualikan warga dari penarikan Jimpitan?",
+    answer: "Pada detail data warga, Anda dapat mengatur status aktif jimpitan. Jika warga sedang pindah sementara atau rumah kosong, matikan opsi 'Aktif Jimpitan' agar tidak muncul di daftar penarikan harian.",
+    order: 7
+  },
+  // --- PENARIK JIMPITAN ---
+  {
+    category: "penarik_jimpitan",
+    question: "Bagaimana cara menginput data penarikan jimpitan harian?",
+    answer: "Gunakan menu 'Input Jimpitan', pilih tanggal, lalu centang atau masukkan nominal pada daftar rumah warga yang tersedia. Pastikan klik 'Simpan' setelah selesai agar data masuk ke rekapitulasi.",
+    order: 8
+  }
+] as const;
+
 const DEFAULT_PIN = "123456";
 
 // ─── Hash Utility ─────────────────────────────────────────────────────────────
@@ -157,6 +211,29 @@ export default function SeederPage() {
         );
       }
 
+      // ── Seed FAQ ─────────────────────────────────────
+      pushLog(setter, "❓ Memproses data FAQ...", "info");
+      for (const faq of FAQ_SEED) {
+        // Cek apakah FAQ dengan pertanyaan ini sudah ada
+        const existingFaq = await getDocs(
+          query(collection(db, "faqs"), where("question", "==", faq.question))
+        );
+
+        if (!existingFaq.empty) {
+          pushLog(setter, `  ⏭ Skip: FAQ "${faq.question.slice(0, 30)}..." sudah ada`, "skip");
+          continue;
+        }
+
+        await addDoc(collection(db, "faqs"), {
+          ...faq,
+          is_active: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        pushLog(setter, `  ✓ FAQ: ${faq.question.slice(0, 40)}...`, "success");
+      }
+
       pushLog(setter, "━━━ Seeder Selesai ━━━", "info");
       pushLog(setter, "", "info");
       pushLog(setter, "📌 Akun Login Petugas:", "info");
@@ -165,6 +242,51 @@ export default function SeederPage() {
         pushLog(setter, `  ${p.jabatan}: HP ${w.nomor_hp} | PIN ${DEFAULT_PIN}`, "success");
       });
 
+      setIsDone(true);
+    } catch (err: unknown) {
+      pushLog(setter, `✗ ERROR: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`, "error");
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const runFaqSeeder = async () => {
+    if (!db) {
+      alert("Firestore belum terinisialisasi.");
+      return;
+    }
+    setLogs([]);
+    setIsRunning(true);
+    setIsDone(false);
+    const setter = setLogs;
+
+    try {
+      pushLog(setter, "━━━ Memulai Seeder FAQ ━━━", "info");
+
+      // ── Seed FAQ ─────────────────────────────────────
+      pushLog(setter, "❓ Memproses data FAQ...", "info");
+      for (const faq of FAQ_SEED) {
+        // Cek apakah FAQ dengan pertanyaan ini sudah ada
+        const existingFaq = await getDocs(
+          query(collection(db, "faqs"), where("question", "==", faq.question))
+        );
+
+        if (!existingFaq.empty) {
+          pushLog(setter, `  ⏭ Skip: FAQ "${faq.question.slice(0, 30)}..." sudah ada`, "skip");
+          continue;
+        }
+
+        await addDoc(collection(db, "faqs"), {
+          ...faq,
+          is_active: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        pushLog(setter, `  ✓ FAQ: ${faq.question.slice(0, 40)}...`, "success");
+      }
+
+      pushLog(setter, "━━━ Seeder FAQ Selesai ━━━", "info");
       setIsDone(true);
     } catch (err: unknown) {
       pushLog(setter, `✗ ERROR: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`, "error");
@@ -250,24 +372,42 @@ export default function SeederPage() {
             </p>
           </div>
 
-          {/* Run button */}
-          <button
-            id="btn-run-seeder"
-            onClick={runSeeder}
-            disabled={isRunning}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-          >
-            {isRunning ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Menjalankan Seeder...
-              </>
-            ) : isDone ? (
-              "✅ Selesai — Jalankan Ulang"
-            ) : (
-              "▶ Jalankan Seeder"
-            )}
-          </button>
+          {/* Run buttons */}
+          <div className="flex flex-col gap-3">
+            <button
+              id="btn-run-seeder"
+              onClick={runSeeder}
+              disabled={isRunning}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            >
+              {isRunning ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Menjalankan Seeder...
+                </>
+              ) : isDone ? (
+                "✅ Selesai — Jalankan Semua"
+              ) : (
+                "▶ Jalankan Semua Seeder"
+              )}
+            </button>
+
+            <button
+              id="btn-run-faq-seeder"
+              onClick={runFaqSeeder}
+              disabled={isRunning}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            >
+              {isRunning ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-slate-500 border-t-slate-200 rounded-full animate-spin" />
+                  Memproses FAQ...
+                </>
+              ) : (
+                "❓ Seed FAQ Saja"
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Log Output */}

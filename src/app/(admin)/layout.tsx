@@ -7,6 +7,8 @@ import { AdminHeader } from "@/components/layout/AdminHeader";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { AuthService } from "@/lib/services/authService";
+import { HelpCircle } from "lucide-react";
+import Link from "next/link";
 import SyncIndicator from "@/components/jimpitan/SyncIndicator";
 
 export default function AdminLayout({
@@ -65,6 +67,17 @@ export default function AdminLayout({
           {/* Bottom Nav for Mobile */}
           <MobileBottomNav />
         </div>
+
+        {/* Floating Help Button for Admin */}
+        <Link
+          href="/faq"
+          className="fixed bottom-20 md:bottom-6 right-6 z-50 flex items-center gap-2 p-4 rounded-2xl bg-slate-800 border border-slate-700 text-indigo-400 shadow-2xl shadow-black/40 hover:bg-slate-700 transition-all active:scale-95 group"
+        >
+          <HelpCircle className="w-6 h-6" />
+          <span className="hidden sm:inline-block font-bold text-sm">
+            Bantuan
+          </span>
+        </Link>
       </div>
     </AuthProvider>
   );

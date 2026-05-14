@@ -17,6 +17,7 @@ import {
   FileText,
   PieChart,
   ClipboardList,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -44,6 +45,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
         { name: "Petugas", href: "/petugas", icon: UserCog }
       ]
       : []),
+    { name: "FAQ / Bantuan", href: "/faq", icon: HelpCircle },
   ];
 
   const laporanItems = [
