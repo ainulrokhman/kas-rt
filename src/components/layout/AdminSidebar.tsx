@@ -13,6 +13,10 @@ import {
   ShieldCheck,
   UserCog,
   UserCircle,
+  CircleDollarSign,
+  FileText,
+  PieChart,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -29,14 +33,25 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Warga", href: "/warga", icon: Users },
-    { 
-      name: user?.jabatan === "Penarik Jimpitan" ? "Jimpitan" : "Laporan Kas", 
-      href: "/jimpitan", 
-      icon: Wallet 
+    {
+      name: "Jimpitan",
+      href: "/jimpitan",
+      icon: Wallet
     },
-    ...(user?.jabatan !== "Penarik Jimpitan" 
-      ? [{ name: "Petugas", href: "/petugas", icon: UserCog }]
+    ...(user?.jabatan !== "Penarik Jimpitan"
+      ? [
+        { name: "Buku Kas", href: "/kas", icon: CircleDollarSign },
+        { name: "Petugas", href: "/petugas", icon: UserCog }
+      ]
       : []),
+  ];
+
+  const laporanItems = [
+    { name: "Lap. Jimpitan", href: "/laporan/jimpitan", icon: FileText },
+    ...(user?.jabatan !== "Penarik Jimpitan" ? [
+      { name: "Lap. Kas", href: "/laporan/kas", icon: PieChart },
+      { name: "Audit Log", href: "/laporan/log", icon: ClipboardList },
+    ] : []),
   ];
 
   const activeClass =
@@ -95,7 +110,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto py-5 px-3 space-y-1 custom-scrollbar">
           {menuItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href) && !pathname.startsWith("/laporan"));
             return (
               <Link
                 key={item.name}
@@ -109,11 +124,10 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
                   <div className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-indigo-500/20 to-transparent" />
                 )}
                 <item.icon
-                  className={`w-5 h-5 flex-shrink-0 ${
-                    isActive
+                  className={`w-5 h-5 flex-shrink-0 ${isActive
                       ? "text-indigo-400"
                       : "text-slate-400 group-hover:text-indigo-300 group-hover:scale-110 transition-transform duration-300"
-                  }`}
+                    }`}
                 />
                 {!isCollapsed && (
                   <span className="whitespace-nowrap tracking-wide text-sm">
@@ -123,6 +137,44 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
               </Link>
             );
           })}
+
+          {laporanItems.length > 0 && (
+            <>
+              {!isCollapsed && (
+                <p className="px-4 pt-6 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                  Laporan & Log
+                </p>
+              )}
+              {laporanItems.map((item) => {
+                const isActive = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium group relative overflow-hidden min-h-[44px]
+                      ${isActive ? activeClass : inactiveClass}`}
+                    onClick={() => setIsOpen(false)}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-indigo-500/20 to-transparent" />
+                    )}
+                    <item.icon
+                      className={`w-5 h-5 flex-shrink-0 ${isActive
+                          ? "text-indigo-400"
+                          : "text-slate-400 group-hover:text-indigo-300 group-hover:scale-110 transition-transform duration-300"
+                        }`}
+                    />
+                    {!isCollapsed && (
+                      <span className="whitespace-nowrap tracking-wide text-sm">
+                        {item.name}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* Bottom: User Info + Logout */}

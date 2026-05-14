@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { JimpitanReportRow, JimpitanMonthTarget } from '@/types/jimpitan';
 
-const formatRupiah = (angka: number) =>
+export const formatRupiah = (angka: number) =>
   new Intl.NumberFormat("id-ID", { minimumFractionDigits: 0 }).format(angka);
 
 export const exportToExcel = (
@@ -145,4 +145,91 @@ export const exportToPDF = (
   }
 
   doc.save(`Laporan_Jimpitan_${monthLabel.replace(' ', '_')}.pdf`);
+};
+
+/**
+ * EXPORT KAS TRANSACTIONS
+ */
+
+export const exportKasToExcel = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transactions: Record<string, any>[], 
+  title: string
+) => {
+  const data = transactions.map((tx, index) => ({
+    'No': index + 1,
+    'Tanggal': tx.tanggal,
+    'Jenis': tx.jenis,
+    'Kategori': tx.kategori,
+    'Keterangan': tx.keterangan,
+    'Nominal': tx.nominal,
+    'Petugas': tx.petugas_nama || '-',
+    'Jabatan': tx.petugas_jabatan || '-'
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Log Transaksi");
+
+  const wscols = [
+    { wch: 5 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 15 },
+    { wch: 35 },
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 15 }
+  ];
+  worksheet['!cols'] = wscols;
+
+  XLSX.writeFile(workbook, `${title.replace(/ /g, '_')}.xlsx`);
+};
+
+export const exportKasToPDF = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transactions: Record<string, any>[],
+  title: string,
+  summary: { totalMasuk: number; totalKeluar: number; saldo: number }
+) => {
+  const doc = new jsPDF('l', 'mm', 'a4');
+  
+  doc.setFontSize(18);
+  doc.text(title.toUpperCase(), 14, 15);
+  
+  doc.setFontSize(10);
+  doc.text(`Total Masuk: ${formatRupiah(summary.totalMasuk)}`, 14, 22);
+  doc.text(`Total Keluar: ${formatRupiah(summary.totalKeluar)}`, 70, 22);
+  doc.text(`Saldo Akhir: ${formatRupiah(summary.saldo)}`, 130, 22);
+
+  const tableHeaders = [['No', 'Tanggal', 'Jenis', 'Kategori', 'Keterangan', 'Nominal', 'Petugas']];
+  
+  const tableData = transactions.map((tx, index) => [
+    index + 1,
+    tx.tanggal,
+    tx.jenis,
+    tx.kategori,
+    tx.keterangan,
+    formatRupiah(tx.nominal),
+    `${tx.petugas_nama || '-'} (${tx.petugas_jabatan || '-'})`
+  ]);
+
+  autoTable(doc, {
+    head: tableHeaders,
+    body: tableData,
+    startY: 30,
+    theme: 'grid',
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [63, 81, 181] },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 25 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 80 },
+      5: { cellWidth: 30 },
+    }
+  });
+
+  doc.save(`${title.replace(/ /g, '_')}.pdf`);
 };

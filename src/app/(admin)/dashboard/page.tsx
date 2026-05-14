@@ -9,6 +9,7 @@ import {
   RefreshCw,
   TrendingUp,
   CalendarCheck,
+  CircleDollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -16,6 +17,8 @@ import { WargaRepository } from "@/lib/repositories/wargaRepository";
 import { PetugasRepository } from "@/lib/repositories/petugasRepository";
 import { JimpitanService } from "@/lib/services/jimpitanService";
 import { JimpitanRepository } from "@/lib/repositories/jimpitanRepository";
+import { KasRepository } from "@/lib/repositories/kasRepository";
+import { KasService } from "@/lib/services/kasService";
 import { Warga } from "@/types/warga";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -60,6 +63,7 @@ interface DashboardStats {
   totalWarga: number;
   petugasAktif: number;
   jimpitanBulanIni: number;
+  saldoKas: number;
   wargaLunas: number;
   totalWargaReport: number;
   progressPersen: number;
@@ -90,10 +94,11 @@ export default function DashboardPage() {
     setError(null);
     try {
       const yearMonth = getCurrentYearMonth();
-      const [wargaList, petugasList, jimpitanReport] = await Promise.all([
+      const [wargaList, petugasList, jimpitanReport, kasList] = await Promise.all([
         WargaRepository.getAll(),
         PetugasRepository.getAll(),
         JimpitanService.getLaporanBulanan(yearMonth),
+        KasRepository.getAllTransactions(),
       ]);
 
       const now = Date.now();
@@ -122,14 +127,17 @@ export default function DashboardPage() {
         (sum, r) => sum + r.total_masuk_bulan_ini,
         0
       );
+
+      const kasSummary = KasService.calculateSummary(kasList);
       
       setStats({
         totalWarga: wargaList.length,
         petugasAktif,
         jimpitanBulanIni: totalJimpitan,
-        wargaLunas: 0, // Tidak lagi digunakan di UI baru
+        saldoKas: kasSummary.saldo,
+        wargaLunas: 0, 
         totalWargaReport: reports.length,
-        progressPersen: 0, // Tidak lagi digunakan di UI baru
+        progressPersen: 0, 
       });
       setRecentTrx(latestTrx);
     } catch (err: unknown) {
@@ -144,9 +152,6 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   const firstName = user?.nama_lengkap?.split(" ")[0] ?? "Petugas";
-  const yearMonth = getCurrentYearMonth();
-  const [tahun, bulan] = yearMonth.split("-");
-  const namaBulan = new Date(Number(tahun), Number(bulan) - 1, 1).toLocaleDateString("id-ID", { month: "long" });
 
   const menuItems = [
     ...(user?.jabatan === "Penarik Jimpitan" 
@@ -156,6 +161,7 @@ export default function DashboardPage() {
     { label: "Laporan Kas", href: "/jimpitan?tab=LAPORAN", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
     ...(user?.jabatan !== "Penarik Jimpitan" 
       ? [
+          { label: "Buku Kas RT", href: "/kas", icon: CircleDollarSign, color: "bg-emerald-600", shadow: "shadow-emerald-500/20" },
           { label: "Petugas RT", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
           { label: "Pengaturan", href: "/jimpitan?tab=SETTING", icon: RefreshCw, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
         ]
@@ -184,9 +190,9 @@ export default function DashboardPage() {
          {/* Mini Stats Card */}
          <div className="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex justify-between items-center relative z-10 shadow-inner">
             <div className="space-y-1">
-               <p className="text-slate-400 text-xs font-medium">Kas Terkumpul {namaBulan}</p>
+               <p className="text-slate-400 text-xs font-medium">Saldo Kas RT Saat Ini</p>
                <h2 className="text-2xl font-bold text-white tracking-tight">
-                  {isLoading ? "..." : formatRupiah(stats?.jimpitanBulanIni ?? 0)}
+                  {isLoading ? "..." : formatRupiah(stats?.saldoKas ?? 0)}
                </h2>
             </div>
             <div className="h-10 w-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
