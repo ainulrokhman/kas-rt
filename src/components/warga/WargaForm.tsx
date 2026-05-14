@@ -15,14 +15,16 @@ export default function WargaForm({ initialData, onClose }: WargaFormProps) {
     nama_lengkap: initialData?.nama_lengkap || "",
     jenis_kelamin: initialData?.jenis_kelamin || "L",
     nomor_hp: initialData?.nomor_hp || "",
+    dikecualikan_jimpitan: !!initialData?.dikecualikan_jimpitan,
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target as HTMLInputElement;
+    const val = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,6 +148,31 @@ export default function WargaForm({ initialData, onClose }: WargaFormProps) {
                 className="w-full bg-slate-950/50 border border-slate-700/60 hover:border-slate-500 text-slate-200 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-600 font-medium tracking-wide shadow-inner"
                 autoComplete="off"
               />
+            </div>
+
+            <div className="pt-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    id="dikecualikan_jimpitan"
+                    name="dikecualikan_jimpitan"
+                    checked={formData.dikecualikan_jimpitan}
+                    onChange={handleChange}
+                    className="peer sr-only"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 rounded-full border border-slate-700 peer-checked:bg-indigo-600 peer-checked:border-indigo-500 transition-all duration-300"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-5 peer-checked:bg-white transition-all duration-300 shadow-sm"></div>
+                </div>
+                <div className="flex-1">
+                  <span className="block text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">
+                    Pengecualian Tarikan Jimpitan
+                  </span>
+                  <span className="block text-[10px] text-slate-500 font-medium">
+                    Aktifkan jika warga dibebaskan dari iuran (misal: rumah kosong)
+                  </span>
+                </div>
+              </label>
             </div>
           </form>
         </div>

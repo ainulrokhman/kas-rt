@@ -13,7 +13,6 @@ import InputTarikanForm from "@/components/jimpitan/InputTarikanForm";
 import LaporanBulananTable from "@/components/jimpitan/LaporanBulananTable";
 import SettingJimpitan from "@/components/jimpitan/SettingJimpitan";
 import SettingSistem from "@/components/admin/SettingSistem";
-import SyncIndicator from "@/components/jimpitan/SyncIndicator";
 import { useAuth } from "@/lib/context/AuthContext";
 
 type Tab = 'TARIK' | 'LAPORAN' | 'SETTING';
@@ -230,9 +229,6 @@ function JimpitanContent() {
         </div>
       </div>
 
-      {/* Offline/Sync Indicator */}
-      <SyncIndicator />
-
       {/* Animated Tabs */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-1.5 flex relative shadow-inner max-w-md w-full">
         {isPenarik && (
@@ -330,14 +326,14 @@ function JimpitanContent() {
                 Mulai Keliling Area
               </h2>
               <span className="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                {wargaList.length} Rumah
+                {wargaList.filter(w => !w.dikecualikan_jimpitan).length} Rumah Aktif
               </span>
             </div>
 
             {/* Dibikin grid jika layar lebar, dan single col jika mobile */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InputTarikanForm
-                wargaList={wargaList}
+                wargaList={wargaList.filter(w => !w.dikecualikan_jimpitan)}
                 petugasId={user?.petugas_id || "unknown"}
                 selectedDate={tanggalFilter}
                 dailyTransactions={dailyTransactions}

@@ -35,7 +35,6 @@ export default function KasPage() {
     };
 
     loadInitialData();
-    setLoading(true);
     const unsubscribe = KasRepository.observeTransactions((txs) => {
       setTransactions(txs);
       setSummary(KasService.calculateSummary(txs));
@@ -61,110 +60,153 @@ export default function KasPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 to-white tracking-tight">
-            Buku Kas RT
-          </h1>
-          <p className="text-slate-400 font-medium tracking-wide text-sm mt-1">
-            Pencatatan arus kas masuk dan keluar warga
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsSyncModalOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold transition-all active:scale-95"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Sync Jimpitan
-          </button>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2.5 text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah
-          </button>
-        </div>
+    <div className="w-full max-w-4xl mx-auto space-y-8 pb-20 relative">
+      {/* Background Decor */}
+      <div className="fixed inset-0 pointer-events-none opacity-20 z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,#4f46e533,transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Saldo</p>
-          <p className="text-2xl font-bold text-white">{formatRupiah(summary.saldo)}</p>
+      <div className="relative z-10 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
+          <div className="space-y-1">
+            <h1 className="text-3xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br from-white via-slate-200 to-slate-500 tracking-tight">
+              Buku Kas <span className="text-indigo-500">RT</span>
+            </h1>
+            <p className="text-xs md:text-sm text-slate-500 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+               <span className="w-8 h-[1px] bg-indigo-500/50"></span>
+               Arus Kas Transparan
+            </p>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              onClick={() => setIsSyncModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900/50 hover:bg-slate-800 text-indigo-400 border border-slate-700/50 rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-black/20"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Sync
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-6 py-3 text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_-5px_rgba(79,70,229,0.5)] active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah
+            </button>
+          </div>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm border-l-4 border-l-emerald-500">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Masuk</p>
-          <p className="text-2xl font-bold text-emerald-400">{formatRupiah(summary.totalMasuk)}</p>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-[2rem] p-6 shadow-2xl shadow-indigo-500/5">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Saldo Saat Ini</p>
+            <p className="text-3xl font-black text-white tracking-tight">{formatRupiah(summary.saldo)}</p>
+          </div>
+          
+          <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-emerald-500/20 rounded-[2rem] p-6 shadow-2xl shadow-emerald-500/5">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <div className="flex items-center gap-2 mb-2">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+               <p className="text-[10px] font-black text-emerald-500/70 uppercase tracking-[0.2em]">Total Masuk</p>
+            </div>
+            <p className="text-3xl font-black text-emerald-400 tracking-tight">{formatRupiah(summary.totalMasuk)}</p>
+          </div>
+
+          <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-rose-500/20 rounded-[2rem] p-6 shadow-2xl shadow-rose-500/5">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <div className="flex items-center gap-2 mb-2">
+               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+               <p className="text-[10px] font-black text-rose-500/70 uppercase tracking-[0.2em]">Total Keluar</p>
+            </div>
+            <p className="text-3xl font-black text-rose-400 tracking-tight">{formatRupiah(summary.totalKeluar)}</p>
+          </div>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm border-l-4 border-l-rose-500">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Keluar</p>
-          <p className="text-2xl font-bold text-rose-400">{formatRupiah(summary.totalKeluar)}</p>
-        </div>
-      </div>
 
 
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-200 px-1">Riwayat Transaksi</h2>
+        {/* Riwayat Transaksi Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-extrabold text-slate-100 tracking-tight">Riwayat Transaksi</h2>
+            <span className="text-[10px] font-black bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full uppercase tracking-widest">
+              {transactions.length} Records
+            </span>
+          </div>
+
           {transactions.length === 0 ? (
-            <div className="bg-slate-900/40 border border-slate-800/50 rounded-2xl p-10 text-center">
-              <Info className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500">Belum ada transaksi kas.</p>
+            <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2rem] p-12 text-center backdrop-blur-sm shadow-inner">
+              <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700/30">
+                <Info className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-500 font-medium">Belum ada transaksi kas yang tercatat.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3">
               {transactions.map((tx) => {
                 const petugas = petugasMap[tx.petugas_id];
+                const isMasuk = tx.jenis === "MASUK";
+                
                 return (
                   <div
                     key={tx.id}
-                    className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-4 flex items-center justify-between group hover:bg-slate-900/80 transition-all"
+                    className="group relative bg-slate-900/50 hover:bg-slate-900/80 border border-slate-800/50 rounded-[1.5rem] p-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/5 overflow-hidden"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        tx.jenis === "MASUK" ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                      }`}>
-                        {tx.jenis === "MASUK" ? <ArrowDownCircle className="w-6 h-6" /> : <ArrowUpCircle className="w-6 h-6" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-100 truncate">{tx.keterangan}</p>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase tracking-wider">
-                              {tx.kategori}
-                            </span>
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {tx.tanggal}
-                            </span>
+                    {/* Status Indicator Bar */}
+                    <div className={`absolute top-0 bottom-0 left-0 w-1 ${isMasuk ? 'bg-emerald-500' : 'bg-rose-500'} opacity-50`}></div>
+                    
+                    <div className="flex flex-col gap-3">
+                      {/* Top Row: Icon, Title, Nominal */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${
+                            isMasuk ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                          }`}>
+                            {isMasuk ? <ArrowDownCircle className="w-5 h-5" /> : <ArrowUpCircle className="w-5 h-5" />}
                           </div>
-                          <div className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                            <User className="w-3 h-3 text-indigo-400" />
-                            <p className="text-[11px] text-slate-400 font-medium">
-                              {petugas?.nama_lengkap || "Sistem"}
-                              <span className="text-[10px] text-slate-600 ml-1">
-                                ({petugas?.jabatan || "-"})
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-100 text-sm md:text-base leading-tight truncate">
+                              {tx.keterangan}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 uppercase tracking-wider border border-slate-700/50">
+                                {tx.kategori}
                               </span>
-                            </p>
+                              <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">
+                                <Calendar className="w-3 h-3" />
+                                {tx.tanggal}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        
+                        <div className="text-right flex-shrink-0">
+                          <p className={`font-black text-sm md:text-base ${isMasuk ? "text-emerald-400" : "text-rose-400"}`}>
+                            {isMasuk ? "+" : "-"} {formatRupiah(tx.nominal).replace('Rp', '').trim()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right flex items-center gap-4 flex-shrink-0">
-                      <div>
-                        <p className={`font-bold ${tx.jenis === "MASUK" ? "text-emerald-400" : "text-rose-400"}`}>
-                          {tx.jenis === "MASUK" ? "+" : "-"} {formatRupiah(tx.nominal)}
-                        </p>
+
+                      {/* Bottom Row: Petugas & Actions */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-800/40">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700/50">
+                            <User className="w-2.5 h-2.5 text-indigo-400" />
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-bold tracking-tight">
+                            {petugas?.nama_lengkap || "Sistem"} 
+                            <span className="text-slate-600 font-medium ml-1">({petugas?.jabatan || "-"})</span>
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                          aria-label="Hapus"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDelete(tx.id)}
-                        className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 );
@@ -172,6 +214,8 @@ export default function KasPage() {
             </div>
           )}
         </div>
+
+      </div>
 
       {/* Modals */}
       <AddTransactionModal

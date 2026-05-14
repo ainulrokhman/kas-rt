@@ -74,6 +74,13 @@ export class JimpitanService {
       // Saldo = Total Kas Masuk - Total Tagihan Masa Lalu
       const saldoTersediaBulanIni = totalUangMasuk - totalTagihanLalu;
 
+      // --- LOGIKA PENGECEALIAN ---
+      // Jika warga dikecualikan DAN tidak ada uang masuk di bulan ini, kita skip dari laporan.
+      // Ini agar laporan tetap akurat terhadap kas riil tapi bersih dari warga non-aktif.
+      if (warga.dikecualikan_jimpitan && uangMasukBulanIni === 0) {
+        continue;
+      }
+
       // Jika saldoTersediaBulanIni negatif, artinya dia punya tunggakan dari bulan sebelumnya.
       // Jika positif, kita alokasikan ke minggu-minggu di bulan ini.
 

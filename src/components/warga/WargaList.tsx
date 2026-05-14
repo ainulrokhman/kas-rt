@@ -17,28 +17,22 @@ export default function WargaList() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedWarga, setSelectedWarga] = useState<Warga | undefined>(undefined);
 
-  const fetchWarga = async () => {
-    try {
-      setLoading(true);
-      const data = await WargaRepository.getAll();
-      setWarga(data);
-      setError("");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal mengambil data warga");
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   useEffect(() => {
-    fetchWarga();
+    setLoading(true);
+    const unsubscribe = WargaRepository.observeAll((data) => {
+      setWarga(data);
+      setLoading(false);
+      setError("");
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Hapus data warga ${name}?`)) return;
     try {
       await WargaRepository.delete(id);
-      fetchWarga();
     } catch (err: unknown) {
       alert("Gagal menghapus: " + (err instanceof Error ? err.message : "Terjadi kesalahan"));
     }
@@ -54,9 +48,8 @@ export default function WargaList() {
     setIsFormOpen(true);
   };
 
-  const handleFormClose = (needsRefresh?: boolean) => {
+  const handleFormClose = () => {
     setIsFormOpen(false);
-    if (needsRefresh) fetchWarga();
   };
 
   const filteredWarga = warga.filter((w) =>
@@ -134,7 +127,16 @@ export default function WargaList() {
                 filteredWarga.map((w, index) => (
                   <tr key={w.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-400">{index + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-200">{w.nama_lengkap}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-200">
+                      <div className="flex flex-col">
+                        <span>{w.nama_lengkap}</span>
+                        {w.dikecualikan_jimpitan && (
+                          <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter mt-0.5">
+                            Bebas Jimpitan
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-400">
                       <span className={`px-2 py-1 rounded-md text-xs border ${w.jenis_kelamin === 'L' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'}`}>
                         {w.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
@@ -195,6 +197,11 @@ export default function WargaList() {
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${w.jenis_kelamin === 'L' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'}`}>
                         {w.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
                       </span>
+                      {w.dikecualikan_jimpitan && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-500 border-amber-500/20">
+                          Bebas Jimpitan
+                        </span>
+                      )}
                     </div>
                   </div>
                   {user?.jabatan !== "Penarik Jimpitan" && (

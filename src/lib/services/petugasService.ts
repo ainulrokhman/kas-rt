@@ -1,7 +1,8 @@
 import { PetugasRepository } from "@/lib/repositories/petugasRepository";
 import { WargaRepository } from "@/lib/repositories/wargaRepository";
 import { AuthService } from "@/lib/services/authService";
-import { JabatanPetugas, PetugasWithWarga } from "@/types/petugas";
+import { JabatanPetugas, PetugasWithWarga, Petugas } from "@/types/petugas";
+import { Warga } from "@/types/warga";
 
 export class PetugasService {
   /**
@@ -85,5 +86,44 @@ export class PetugasService {
    */
   static async toggleActive(id: string, isActive: boolean): Promise<void> {
     await PetugasRepository.setActive(id, isActive);
+  }
+
+  /**
+   * Mendengarkan perubahan data petugas dan warga secara real-time.
+   */
+  static observeAll(callback: (data: PetugasWithWarga[]) => void): () => void {
+    let petugasList: Petugas[] = [];
+    let wargaList: Warga[] = [];
+
+    const emit = () => {
+      const wargaMap = new Map(wargaList.map((w) => [w.id, w]));
+      const joined = petugasList
+        .map((p) => {
+          const warga = wargaMap.get(p.warga_id);
+          if (!warga) return null;
+          return {
+            ...p,
+            nama_lengkap: warga.nama_lengkap,
+            nomor_hp: warga.nomor_hp,
+          } as PetugasWithWarga;
+        })
+        .filter((p): p is PetugasWithWarga => p !== null);
+      callback(joined);
+    };
+
+    const unsubPetugas = PetugasRepository.observeAll((data) => {
+      petugasList = data;
+      emit();
+    });
+
+    const unsubWarga = WargaRepository.observeAll((data) => {
+      wargaList = data;
+      emit();
+    });
+
+    return () => {
+      unsubPetugas();
+      unsubWarga();
+    };
   }
 }

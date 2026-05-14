@@ -19,3 +19,14 @@ export interface KasSummary {
   totalKeluar: number;
   saldo: number;
 }
+
+export interface AnnualReportMonth {
+  index: number;
+  nama: string;
+  pemasukan: number;
+  pengeluaran: number;
+  jumlah: number;
+  saldoAkhir: number;
+  ketMasuk: string;
+  ketKeluar: string;
+}

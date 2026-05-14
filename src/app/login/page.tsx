@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ShieldCheck, Phone, Eye, EyeOff, LogIn, Lock } from "lucide-react";
+import { ShieldCheck, Phone, Eye, EyeOff, LogIn, Lock, ArrowLeft } from "lucide-react";
 import { AuthService } from "@/lib/services/authService";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -229,9 +230,18 @@ export default function LoginPage() {
             </form>
 
             {/* Footer */}
-            <p className="text-center text-xs text-slate-600 mt-6">
-              Sistem Manajemen Kas RT • Hanya untuk Petugas
-            </p>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <p className="text-center text-xs text-slate-600">
+                Sistem Manajemen Kas RT • Hanya untuk Petugas
+              </p>
+              <Link
+                href="/"
+                className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 group"
+              >
+                <ArrowLeft className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" />
+                Kembali ke Halaman Utama
+              </Link>
+            </div>
           </div>
         </div>
       </div>

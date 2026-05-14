@@ -35,6 +35,7 @@ export class WargaRepository {
         nama_lengkap: data.nama_lengkap,
         jenis_kelamin: data.jenis_kelamin,
         nomor_hp: data.nomor_hp,
+        dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
         createdAt: data.createdAt?.toMillis() || 0,
         updatedAt: data.updatedAt?.toMillis() || 0,
       } as Warga;
@@ -52,6 +53,7 @@ export class WargaRepository {
       nama_lengkap: data.nama_lengkap.trim(),
       jenis_kelamin: data.jenis_kelamin,
       nomor_hp: data.nomor_hp ? data.nomor_hp.replace(/\D/g, "") : "", // Hapus semua karakter non-angka
+      dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -73,6 +75,7 @@ export class WargaRepository {
     if (data.nama_lengkap !== undefined) updateData.nama_lengkap = data.nama_lengkap.trim();
     if (data.jenis_kelamin !== undefined) updateData.jenis_kelamin = data.jenis_kelamin;
     if (data.nomor_hp !== undefined) updateData.nomor_hp = data.nomor_hp ? data.nomor_hp.replace(/\D/g, "") : "";
+    if (data.dikecualikan_jimpitan !== undefined) updateData.dikecualikan_jimpitan = !!data.dikecualikan_jimpitan;
 
     const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, updateData);
@@ -116,6 +119,7 @@ export class WargaRepository {
       nama_lengkap: data.nama_lengkap,
       jenis_kelamin: data.jenis_kelamin,
       nomor_hp: data.nomor_hp,
+      dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
       createdAt: data.createdAt?.toMillis() || 0,
       updatedAt: data.updatedAt?.toMillis() || 0,
     } as Warga;
@@ -130,10 +134,14 @@ export class WargaRepository {
     const q = query(collection(db, COLLECTION_NAME), orderBy("nama_lengkap", "asc"));
     
     return onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as Warga[];
+      const data = snapshot.docs.map(docSnap => {
+        const d = docSnap.data();
+        return {
+          id: docSnap.id,
+          ...d,
+          dikecualikan_jimpitan: !!d.dikecualikan_jimpitan
+        };
+      }) as Warga[];
       callback(data);
     }, (error) => {
       console.error("Error observing warga:", error);

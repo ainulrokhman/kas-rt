@@ -5,6 +5,7 @@ export interface Warga {
   nama_lengkap: string;
   jenis_kelamin: JenisKelamin;
   nomor_hp: string;
+  dikecualikan_jimpitan?: boolean;
   createdAt?: number; // Menggunakan epoch/number agar lebih mudah dikelola
   updatedAt?: number;
 }
@@ -13,4 +14,5 @@ export interface WargaInput {
   nama_lengkap: string;
   jenis_kelamin: JenisKelamin;
   nomor_hp: string;
+  dikecualikan_jimpitan?: boolean;
 }

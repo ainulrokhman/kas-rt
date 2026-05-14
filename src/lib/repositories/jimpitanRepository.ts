@@ -344,20 +344,26 @@ export class JimpitanRepository {
   }
 
   /**
-   * Mendengarkan apakah ada data yang sedang menunggu untuk diupload (pending writes).
-   * Berguna untuk menampilkan indikator sinkronisasi.
+   * Mendengarkan apakah ada data yang sedang menunggu untuk diupload (pending writes) secara global.
+   * Memantau koleksi transaksi jimpitan, warga, dan transaksi kas.
    */
   static observePendingWrites(callback: (hasPending: boolean) => void): () => void {
     if (!db) return () => {};
 
-    // Kita pantau collection transactions, cukup ambil 1 data terbaru saja 
-    // untuk mengecek metadata.hasPendingWrites secara global di collection tersebut.
-    const q = query(collection(db, "jimpitan_transactions"), limit(1));
+    const collections = ["jimpitan_transactions", "warga", "kas_transactions"];
+    const statuses = new Map<string, boolean>();
     
-    return onSnapshot(q, (snapshot) => {
-      callback(snapshot.metadata.hasPendingWrites);
-    }, (error) => {
-      console.error("Error observing pending writes:", error);
+    const unsubscribes = collections.map(colName => {
+      const q = query(collection(db!, colName), limit(1));
+      return onSnapshot(q, (snapshot) => {
+        statuses.set(colName, snapshot.metadata.hasPendingWrites);
+        const globalHasPending = Array.from(statuses.values()).some(v => v === true);
+        callback(globalHasPending);
+      }, (error) => {
+        console.error(`Error observing pending writes for ${colName}:`, error);
+      });
     });
+
+    return () => unsubscribes.forEach(unsub => unsub());
   }
 }

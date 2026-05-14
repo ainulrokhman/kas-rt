@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusCircle, RefreshCw, UserCog } from "lucide-react";
 import Link from "next/link";
 import { PetugasWithWarga } from "@/types/petugas";
@@ -29,27 +29,19 @@ export default function PetugasPage() {
   const [editTarget, setEditTarget] = useState<PetugasWithWarga | null>(null);
   const [resetPinTarget, setResetPinTarget] = useState<PetugasWithWarga | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await PetugasService.getAll();
-      setData(result);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data petugas.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setIsLoading(true);
+    const unsubscribe = PetugasService.observeAll((result) => {
+      setData(result);
+      setIsLoading(false);
+      setError(null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleToggleActive = async (petugas: PetugasWithWarga) => {
     try {
       await PetugasService.toggleActive(petugas.id, !petugas.is_active);
-      await fetchData();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal update status.");
     }
@@ -76,8 +68,6 @@ export default function PetugasPage() {
         <div className="flex items-center gap-2">
           <button
             id="btn-refresh-petugas"
-            onClick={fetchData}
-            disabled={isLoading}
             className="p-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/50 transition-colors disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -131,14 +121,14 @@ export default function PetugasPage() {
         <PetugasFormModal
           petugas={editTarget}
           onClose={() => setEditTarget(null)}
-          onSuccess={fetchData}
+          onSuccess={() => setEditTarget(null)}
         />
       )}
       {resetPinTarget && (
         <ResetPinModal
           petugas={resetPinTarget}
           onClose={() => setResetPinTarget(null)}
-          onSuccess={fetchData}
+          onSuccess={() => setResetPinTarget(null)}
         />
       )}
     </div>

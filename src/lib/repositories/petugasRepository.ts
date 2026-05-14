@@ -8,6 +8,7 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Petugas, PetugasInput } from "@/types/petugas";
@@ -125,6 +126,25 @@ export class PetugasRepository {
     await updateDoc(docRef, {
       is_active: isActive,
       updatedAt: serverTimestamp(),
+    });
+  }
+
+  /**
+   * Mendengarkan perubahan data semua petugas (Real-time & Offline-First)
+   */
+  static observeAll(callback: (data: Petugas[]) => void): () => void {
+    if (!db) return () => {};
+    
+    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+    
+    return onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      })) as Petugas[];
+      callback(data);
+    }, (error) => {
+      console.error("Error observing petugas:", error);
     });
   }
 }

@@ -79,9 +79,8 @@ export class KasService {
     }
 
     // 3. Simpan ke kas_transactions
-    // Gunakan tanggal tengah bulan atau tanggal Kamis bersangkutan sebagai representasi
     const [y, m] = yearMonth.split("-").map(Number);
-    const timestamp = new Date(y, m - 1, 15).getTime(); // Gunakan tengah bulan untuk sorting bulan yang sama
+    const timestamp = new Date(y, m - 1, 15).getTime(); 
 
     await KasRepository.addTransaction({
       jenis: "MASUK",
@@ -95,5 +94,82 @@ export class KasService {
     });
 
     return { success: true, message: `Berhasil sinkronisasi Rp ${new Intl.NumberFormat("id-ID").format(total)}` };
+  }
+
+  /**
+   * Menghasilkan data untuk Laporan Keuangan Tahunan
+   */
+  static generateAnnualReportData(allTransactions: KasTransaction[], targetYear: number) {
+    const startDateOfYear = new Date(targetYear, 0, 1).getTime();
+    const endDateOfYear = new Date(targetYear, 11, 31, 23, 59, 59).getTime();
+
+    // 1. Hitung Saldo Awal (Semua transaksi sebelum tahun target)
+    const saldoAwal = allTransactions
+      .filter(tx => tx.tanggal_timestamp < startDateOfYear)
+      .reduce((acc, tx) => tx.jenis === 'MASUK' ? acc + tx.nominal : acc - tx.nominal, 0);
+
+    // 2. Inisialisasi data 12 bulan
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const monthNames = [
+        "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI",
+        "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"
+      ];
+      return {
+        index: i + 1,
+        nama: monthNames[i],
+        pemasukan: 0,
+        pengeluaran: 0,
+        jumlah: 0,
+        saldoAkhir: 0,
+        ketMasuk: new Set<string>(),
+        ketKeluar: new Set<string>()
+      };
+    });
+
+    // 3. Isi data dari transaksi di tahun tersebut
+    const txInYear = allTransactions
+      .filter(tx => tx.tanggal_timestamp >= startDateOfYear && tx.tanggal_timestamp <= endDateOfYear)
+      .sort((a, b) => a.tanggal_timestamp - b.tanggal_timestamp);
+
+    txInYear.forEach(tx => {
+      const date = new Date(tx.tanggal_timestamp);
+      const mIdx = date.getMonth();
+      const month = months[mIdx];
+
+      if (tx.jenis === 'MASUK') {
+        month.pemasukan += tx.nominal;
+        month.ketMasuk.add(tx.kategori);
+      } else {
+        month.pengeluaran += tx.nominal;
+        if (tx.keterangan) month.ketKeluar.add(tx.keterangan);
+      }
+    });
+
+    // 4. Hitung Running Balance (Saldo Akhir per bulan)
+    let currentBalance = saldoAwal;
+    const finalMonths = months.map(m => {
+      const jumlah = m.pemasukan - m.pengeluaran;
+      currentBalance += jumlah;
+      return {
+        ...m,
+        jumlah,
+        saldoAkhir: currentBalance,
+        ketMasuk: Array.from(m.ketMasuk).join(", "),
+        ketKeluar: Array.from(m.ketKeluar).join(", ")
+      };
+    });
+
+    // 5. Summary Tahunan
+    const totalMasuk = finalMonths.reduce((acc, m) => acc + m.pemasukan, 0);
+    const totalKeluar = finalMonths.reduce((acc, m) => acc + m.pengeluaran, 0);
+
+    return {
+      saldoAwal,
+      months: finalMonths,
+      totalMasuk,
+      totalKeluar,
+      totalJumlah: totalMasuk - totalKeluar,
+      saldoAkhir: currentBalance
+    };
   }
 }

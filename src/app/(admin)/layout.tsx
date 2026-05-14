@@ -7,6 +7,7 @@ import { AdminHeader } from "@/components/layout/AdminHeader";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { AuthService } from "@/lib/services/authService";
+import SyncIndicator from "@/components/jimpitan/SyncIndicator";
 
 export default function AdminLayout({
   children,
@@ -56,6 +57,7 @@ export default function AdminLayout({
             />
             
             <div className="container mx-auto p-4 sm:p-6 lg:p-8 relative z-10 max-w-7xl">
+              <SyncIndicator />
               {children}
             </div>
           </main>
