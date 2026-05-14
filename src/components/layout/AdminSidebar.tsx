@@ -18,6 +18,7 @@ import {
   PieChart,
   ClipboardList,
   HelpCircle,
+  PiggyBank,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -31,21 +32,23 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { logout, user } = useAuth();
 
-  const menuItems = [
+  const menuUtama = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Warga", href: "/warga", icon: Users },
-    {
-      name: "Jimpitan",
-      href: "/jimpitan",
-      icon: Wallet
-    },
+  ];
+
+  const menuKeuangan = [
+    { name: "Jimpitan", href: "/jimpitan", icon: Wallet },
+    { name: "Tabungan", href: "/tabungan", icon: PiggyBank },
     ...(user?.jabatan !== "Penarik Jimpitan"
-      ? [
-        { name: "Buku Kas", href: "/kas", icon: CircleDollarSign },
-        { name: "Petugas", href: "/petugas", icon: UserCog }
-      ]
+      ? [{ name: "Buku Kas", href: "/kas", icon: CircleDollarSign }]
       : []),
-    { name: "FAQ / Bantuan", href: "/faq", icon: HelpCircle },
+  ];
+
+  const menuData = [
+    { name: "Data Warga", href: "/warga", icon: Users },
+    ...(user?.jabatan !== "Penarik Jimpitan"
+      ? [{ name: "Data Petugas", href: "/petugas", icon: UserCog }]
+      : []),
   ];
 
   const laporanItems = [
@@ -55,6 +58,39 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
       { name: "Audit Log", href: "/laporan/log", icon: ClipboardList },
     ] : []),
   ];
+
+  const renderLink = (item: { name: string; href: string; icon: React.ElementType }) => {
+    const isLaporan = item.href.startsWith("/laporan");
+    const isActive = isLaporan 
+      ? pathname.startsWith(item.href)
+      : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium group relative overflow-hidden min-h-[44px]
+          ${isActive ? activeClass : inactiveClass}`}
+        onClick={() => setIsOpen(false)}
+        title={isCollapsed ? item.name : undefined}
+      >
+        {isActive && (
+          <div className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-indigo-500/20 to-transparent" />
+        )}
+        <item.icon
+          className={`w-5 h-5 flex-shrink-0 ${isActive
+              ? "text-indigo-400"
+              : "text-slate-400 group-hover:text-indigo-300 group-hover:scale-110 transition-transform duration-300"
+            }`}
+        />
+        {!isCollapsed && (
+          <span className="whitespace-nowrap tracking-wide text-sm">
+            {item.name}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   const activeClass =
     "bg-indigo-600/10 text-indigo-400 border-r-4 border-indigo-500 shadow-[inset_0_0_20px_rgba(79,70,229,0.15)]";
@@ -111,34 +147,24 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto py-5 px-3 space-y-1 custom-scrollbar">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href) && !pathname.startsWith("/laporan"));
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium group relative overflow-hidden min-h-[44px]
-                  ${isActive ? activeClass : inactiveClass}`}
-                onClick={() => setIsOpen(false)}
-                title={isCollapsed ? item.name : undefined}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-indigo-500/20 to-transparent" />
-                )}
-                <item.icon
-                  className={`w-5 h-5 flex-shrink-0 ${isActive
-                      ? "text-indigo-400"
-                      : "text-slate-400 group-hover:text-indigo-300 group-hover:scale-110 transition-transform duration-300"
-                    }`}
-                />
-                {!isCollapsed && (
-                  <span className="whitespace-nowrap tracking-wide text-sm">
-                    {item.name}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {/* Menu Utama */}
+          {menuUtama.map((item) => renderLink(item))}
+
+          {/* Menu Keuangan */}
+          {!isCollapsed && (
+            <p className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              Keuangan RT
+            </p>
+          )}
+          {menuKeuangan.map((item) => renderLink(item))}
+
+          {/* Menu Data */}
+          {!isCollapsed && (
+            <p className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              Data & Sistem
+            </p>
+          )}
+          {menuData.map((item) => renderLink(item))}
 
           {laporanItems.length > 0 && (
             <>
@@ -147,36 +173,14 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
                   Laporan & Log
                 </p>
               )}
-              {laporanItems.map((item) => {
-                const isActive = pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium group relative overflow-hidden min-h-[44px]
-                      ${isActive ? activeClass : inactiveClass}`}
-                    onClick={() => setIsOpen(false)}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {isActive && (
-                      <div className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-indigo-500/20 to-transparent" />
-                    )}
-                    <item.icon
-                      className={`w-5 h-5 flex-shrink-0 ${isActive
-                          ? "text-indigo-400"
-                          : "text-slate-400 group-hover:text-indigo-300 group-hover:scale-110 transition-transform duration-300"
-                        }`}
-                    />
-                    {!isCollapsed && (
-                      <span className="whitespace-nowrap tracking-wide text-sm">
-                        {item.name}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+              {laporanItems.map((item) => renderLink(item))}
             </>
           )}
+
+          {/* FAQ Link */}
+          <div className="pt-4">
+            {renderLink({ name: "FAQ / Bantuan", href: "/faq", icon: HelpCircle })}
+          </div>
         </nav>
 
         {/* Bottom: User Info + Logout */}

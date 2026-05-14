@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ArrowUpRight,
+  ArrowDownLeft,
   Users,
   Wallet,
   UserCog,
@@ -10,6 +11,8 @@ import {
   TrendingUp,
   CalendarCheck,
   CircleDollarSign,
+  PiggyBank,
+  HelpCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -153,19 +156,26 @@ export default function DashboardPage() {
 
   const firstName = user?.nama_lengkap?.split(" ")[0] ?? "Petugas";
 
+  const quickActions = [
+    { label: "Jimpitan", href: "/jimpitan", icon: Wallet, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" },
+    { label: "Tabung", href: "/tabungan/masal", icon: PiggyBank, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
+    { label: "Cairkan", href: "/tabungan/tarik-masal", icon: ArrowDownLeft, color: "bg-rose-500", shadow: "shadow-rose-500/20" },
+  ];
+
   const menuItems = [
-    ...(user?.jabatan === "Penarik Jimpitan" 
-      ? [{ label: "Tarik Jimpitan", href: "/jimpitan?tab=TARIK", icon: Wallet, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" }]
-      : []),
-    { label: "Data Warga", href: "/warga", icon: Users, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
-    { label: "Laporan Kas", href: "/jimpitan?tab=LAPORAN", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
+    { label: "Data Warga", href: "/warga", icon: Users, color: "bg-slate-700", shadow: "shadow-slate-500/20" },
+    { label: "Tabungan", href: "/tabungan", icon: PiggyBank, color: "bg-indigo-600", shadow: "shadow-indigo-500/20" },
     ...(user?.jabatan !== "Penarik Jimpitan" 
       ? [
-          { label: "Buku Kas RT", href: "/kas", icon: CircleDollarSign, color: "bg-emerald-600", shadow: "shadow-emerald-500/20" },
-          { label: "Petugas RT", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
-          { label: "Pengaturan", href: "/jimpitan?tab=SETTING", icon: RefreshCw, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
+          { label: "Buku Kas", href: "/kas", icon: CircleDollarSign, color: "bg-emerald-600", shadow: "shadow-emerald-500/20" },
+          { label: "Laporan", href: "/laporan/kas", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
+          { label: "Petugas", href: "/petugas", icon: UserCog, color: "bg-violet-500", shadow: "shadow-violet-500/20" },
+          { label: "Bantuan", href: "/faq", icon: HelpCircle, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
         ]
-      : []),
+      : [
+          { label: "Laporan", href: "/laporan/jimpitan", icon: CalendarCheck, color: "bg-amber-500", shadow: "shadow-amber-500/20" },
+          { label: "Bantuan", href: "/faq", icon: HelpCircle, color: "bg-slate-600", shadow: "shadow-slate-500/20" },
+      ]),
   ];
 
   return (
@@ -201,20 +211,39 @@ export default function DashboardPage() {
          </div>
       </div>
 
+      {/* ── Quick Actions (Most Frequent) ── */}
+      <div className="space-y-4">
+         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Aksi Cepat</h3>
+         <div className="grid grid-cols-3 gap-3">
+            {quickActions.map((action, i) => (
+               <Link 
+                  key={i}
+                  href={action.href}
+                  className="flex flex-col items-center gap-2 p-3 bg-slate-900/50 border border-slate-800/50 rounded-2xl hover:bg-slate-800 transition-all active:scale-95"
+               >
+                  <div className={`w-10 h-10 ${action.color} rounded-xl flex items-center justify-center shadow-lg ${action.shadow}`}>
+                     <action.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tight">{action.label}</span>
+               </Link>
+            ))}
+         </div>
+      </div>
+
       {/* ── Main Menu Grid ── */}
       <div className="space-y-4">
-         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Menu Utama</h3>
-         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Manajemen & Laporan</h3>
+         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {menuItems.map((item, i) => (
                <Link 
                   key={i}
                   href={item.href}
-                  className="group flex flex-col items-center justify-center bg-slate-900 border border-slate-800/50 p-6 rounded-[2rem] hover:bg-slate-800/50 hover:border-slate-700 transition-all duration-300 active:scale-95 shadow-sm"
+                  className="group flex flex-col items-center justify-center bg-slate-900 border border-slate-800/50 p-4 rounded-[1.5rem] hover:bg-slate-800 transition-all active:scale-95"
                >
-                  <div className={`w-14 h-14 ${item.color} ${item.shadow} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                     <item.icon className="w-7 h-7 text-white" />
+                  <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                     <item.icon className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-sm font-bold text-slate-200 text-center tracking-tight">{item.label}</span>
+                  <span className="text-[11px] font-bold text-slate-200 text-center leading-tight">{item.label}</span>
                </Link>
             ))}
          </div>

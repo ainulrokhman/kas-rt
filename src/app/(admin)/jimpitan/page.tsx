@@ -49,12 +49,10 @@ function JimpitanContent() {
   const initialTab = (searchParams.get("tab") as Tab) || (isPenarik ? 'TARIK' : 'LAPORAN');
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  // RBAC: Penarik tidak boleh ke SETTING, Lainnya tidak boleh ke TARIK
+  // RBAC: Penarik tidak boleh ke SETTING. Tab TARIK kini terbuka untuk semua petugas.
   useEffect(() => {
     if (user?.jabatan === 'Penarik Jimpitan' && activeTab === 'SETTING') {
       setActiveTab('TARIK');
-    } else if (user && user.jabatan !== 'Penarik Jimpitan' && activeTab === 'TARIK') {
-      setActiveTab('LAPORAN');
     }
   }, [user, activeTab]);
 
@@ -231,16 +229,14 @@ function JimpitanContent() {
 
       {/* Animated Tabs */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-1.5 flex relative shadow-inner max-w-md w-full">
-        {isPenarik && (
-          <button
-            onClick={() => setActiveTab('TARIK')}
-            className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'TARIK' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
-              }`}
-          >
-            <Users className="w-4 h-4 mb-1" />
-            Tarikan
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('TARIK')}
+          className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 z-10 ${activeTab === 'TARIK' ? 'text-white' : 'text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          <Users className="w-4 h-4 mb-1" />
+          Tarikan
+        </button>
 
         <button
           onClick={() => setActiveTab('LAPORAN')}
@@ -266,8 +262,12 @@ function JimpitanContent() {
         <div
           className="absolute top-1.5 bottom-1.5 bg-slate-800 rounded-xl transition-all duration-300 ease-out border border-slate-700 shadow-md"
           style={{ 
-            width: 'calc(50% - 4px)',
-            left: (isPenarik && activeTab === 'TARIK') || (!isPenarik && activeTab === 'LAPORAN') ? '6px' : 'calc(50% + 2px)'
+            width: `calc(${100 / (user?.jabatan === 'Penarik Jimpitan' ? 2 : 3)}% - 4px)`,
+            left: activeTab === 'TARIK' 
+              ? '6px' 
+              : activeTab === 'LAPORAN' 
+                ? `calc(${100 / (user?.jabatan === 'Penarik Jimpitan' ? 2 : 3)}% + 2px)`
+                : `calc(${(100 / 3) * 2}% + 2px)`
           }}
         />
       </div>

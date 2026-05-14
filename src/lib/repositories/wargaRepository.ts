@@ -1,6 +1,7 @@
 import { 
   collection, 
-  getDocs, 
+  getDocs,
+  getDoc,
   addDoc, 
   updateDoc, 
   doc, 
@@ -71,6 +72,24 @@ export class WargaRepository {
     });
 
     return results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  /**
+   * Mengambil data warga berdasarkan ID secara langsung
+   */
+  static async getById(id: string): Promise<Warga | null> {
+    if (!db || !id) return null;
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+    
+    const data = snap.data();
+    return {
+      id: snap.id,
+      ...data,
+      createdAt: data.createdAt?.toMillis() || 0,
+      updatedAt: data.updatedAt?.toMillis() || 0,
+    } as Warga;
   }
 
   /**

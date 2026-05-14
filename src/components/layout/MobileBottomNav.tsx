@@ -7,8 +7,8 @@ import {
   LayoutDashboard, 
   Wallet, 
   Users, 
-  UserCog,
-  CircleDollarSign
+  CircleDollarSign,
+  PiggyBank
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -18,18 +18,12 @@ export function MobileBottomNav() {
 
   const navItems = [
     { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-    { 
-      label: user?.jabatan === "Penarik Jimpitan" ? "Jimpitan" : "Laporan", 
-      href: "/jimpitan", 
-      icon: Wallet 
-    },
-    { label: "Warga", href: "/warga", icon: Users },
+    { label: "Jimpitan", href: "/jimpitan", icon: Wallet },
+    { label: "Tabung", href: "/tabungan", icon: PiggyBank },
     ...(user?.jabatan !== "Penarik Jimpitan"
-      ? [
-          { label: "Kas", href: "/kas", icon: CircleDollarSign },
-          { label: "Petugas", href: "/petugas", icon: UserCog }
-        ]
+      ? [{ label: "Kas", href: "/kas", icon: CircleDollarSign }]
       : []),
+    { label: "Warga", href: "/warga", icon: Users },
   ];
 
   return (
