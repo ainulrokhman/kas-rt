@@ -3,11 +3,9 @@ import {
   getDocs, 
   addDoc, 
   updateDoc, 
-  deleteDoc, 
   doc, 
   query, 
   where,
-  orderBy,
   limit,
   serverTimestamp,
   onSnapshot
@@ -24,11 +22,15 @@ export class WargaRepository {
   static async getAll(): Promise<Warga[]> {
     if (!db) throw new Error("Firestore instance belum terinisialisasi");
     
-    // Default sorting berdasarkan tanggal dibuat, dari yang terbaru
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+    // Filter warga yang belum dihapus. 
+    // Sorting dilakukan in-memory untuk menghindari kebutuhan composite index di Firestore.
+    const q = query(
+      collection(db, COLLECTION_NAME), 
+      where("isDeleted", "==", false)
+    );
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(docSnap => {
+    const results = snapshot.docs.map(docSnap => {
       const data = docSnap.data();
       return {
         id: docSnap.id,
@@ -38,8 +40,51 @@ export class WargaRepository {
         dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
         createdAt: data.createdAt?.toMillis() || 0,
         updatedAt: data.updatedAt?.toMillis() || 0,
+        isDeleted: !!data.isDeleted,
       } as Warga;
     });
+
+    // Sort in-memory: createdAt DESC
+    return results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  /**
+   * Mengambil semua data warga termasuk yang sudah dihapus (soft-delete)
+   */
+  static async getAllIncludingDeleted(): Promise<Warga[]> {
+    if (!db) throw new Error("Firestore instance belum terinisialisasi");
+
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    
+    const results = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        nama_lengkap: data.nama_lengkap,
+        jenis_kelamin: data.jenis_kelamin,
+        nomor_hp: data.nomor_hp,
+        dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
+        createdAt: data.createdAt?.toMillis() || 0,
+        updatedAt: data.updatedAt?.toMillis() || 0,
+        isDeleted: !!data.isDeleted,
+      } as Warga;
+    });
+
+    return results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  /**
+   * Mengambil data warga berdasarkan daftar ID
+   */
+  static async getByIds(ids: string[]): Promise<Warga[]> {
+    if (!db || ids.length === 0) return [];
+
+    // Firestore query 'in' maksimal 10 item per query.
+    // Namun untuk mempermudah dan karena jumlah warga kecil, kita bisa ambil semua dan filter in-memory
+    // atau melakukan chunking. Di sini kita ambil semua dan filter untuk kestabilan.
+    const all = await this.getAllIncludingDeleted();
+    const idSet = new Set(ids);
+    return all.filter(w => idSet.has(w.id));
   }
 
   /**
@@ -54,6 +99,7 @@ export class WargaRepository {
       jenis_kelamin: data.jenis_kelamin,
       nomor_hp: data.nomor_hp ? data.nomor_hp.replace(/\D/g, "") : "", // Hapus semua karakter non-angka
       dikecualikan_jimpitan: !!data.dikecualikan_jimpitan,
+      isDeleted: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -88,7 +134,11 @@ export class WargaRepository {
     if (!db) throw new Error("Firestore instance belum terinisialisasi");
 
     const docRef = doc(db, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+    await updateDoc(docRef, {
+      isDeleted: true,
+      deletedAt: Date.now(),
+      updatedAt: serverTimestamp(),
+    });
   }
 
   /**
@@ -106,6 +156,7 @@ export class WargaRepository {
     const q = query(
       collection(db, COLLECTION_NAME),
       where("nomor_hp", "==", sanitized),
+      where("isDeleted", "==", false),
       limit(1)
     );
 
@@ -131,7 +182,12 @@ export class WargaRepository {
   static observeAll(callback: (data: Warga[]) => void): () => void {
     if (!db) return () => {};
     
-    const q = query(collection(db, COLLECTION_NAME), orderBy("nama_lengkap", "asc"));
+    // Filter warga yang belum dihapus. 
+    // Sorting dilakukan in-memory untuk menghindari kebutuhan composite index di Firestore.
+    const q = query(
+      collection(db, COLLECTION_NAME), 
+      where("isDeleted", "==", false)
+    );
     
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(docSnap => {
@@ -139,12 +195,41 @@ export class WargaRepository {
         return {
           id: docSnap.id,
           ...d,
-          dikecualikan_jimpitan: !!d.dikecualikan_jimpitan
+          dikecualikan_jimpitan: !!d.dikecualikan_jimpitan,
+          createdAt: d.createdAt?.toMillis() || 0,
+          updatedAt: d.updatedAt?.toMillis() || 0,
         };
       }) as Warga[];
+
+      // Sort in-memory: nama_lengkap ASC
+      data.sort((a, b) => a.nama_lengkap.localeCompare(b.nama_lengkap));
+      
       callback(data);
     }, (error) => {
       console.error("Error observing warga:", error);
     });
+  }
+
+  /**
+   * Migrasi data warga lama untuk menambahkan field isDeleted: false
+   */
+  static async migrateIsDeleted(): Promise<{ total: number; updated: number }> {
+    if (!db) throw new Error("Firestore instance belum terinisialisasi");
+
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    let updated = 0;
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      if (data.isDeleted === undefined) {
+        await updateDoc(docSnap.ref, {
+          isDeleted: false,
+          updatedAt: serverTimestamp(),
+        });
+        updated++;
+      }
+    }
+
+    return { total: snapshot.size, updated };
   }
 }

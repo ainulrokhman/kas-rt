@@ -204,7 +204,7 @@ export default function TambahPetugasPage() {
           {/* PIN Input */}
           <div className="space-y-1.5">
             <label className="text-xs text-slate-500">PIN Baru</label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {pin.map((digit, i) => (
                 <input
                   key={i}
@@ -226,7 +226,7 @@ export default function TambahPetugasPage() {
           {/* Confirm PIN */}
           <div className="space-y-1.5">
             <label className="text-xs text-slate-500">Konfirmasi PIN</label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {confirmPin.map((digit, i) => (
                 <input
                   key={i}

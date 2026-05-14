@@ -10,27 +10,28 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { WargaRepository } from "@/lib/repositories/wargaRepository";
 
 // ─── Data Seed ────────────────────────────────────────────────────────────────
 
 const WARGA_SEED = [
-  { nama_lengkap: "Ahmad Fauzi", jenis_kelamin: "L", nomor_hp: "081234567890" },
+  { nama_lengkap: "Admin", jenis_kelamin: "L", nomor_hp: "081234567890" },
   { nama_lengkap: "Budi Santoso", jenis_kelamin: "L", nomor_hp: "082345678901" },
   { nama_lengkap: "Cahya Rahman", jenis_kelamin: "L", nomor_hp: "083456789012" },
   { nama_lengkap: "Dewi Lestari", jenis_kelamin: "P", nomor_hp: "084567890123" },
   { nama_lengkap: "Eko Prasetyo", jenis_kelamin: "L", nomor_hp: "085678901234" },
-  { nama_lengkap: "Fitri Handayani", jenis_kelamin: "P", nomor_hp: "086789012345" },
-  { nama_lengkap: "Gunawan Saputra", jenis_kelamin: "L", nomor_hp: "087890123456" },
-  { nama_lengkap: "Hani Rahmawati", jenis_kelamin: "P", nomor_hp: "088901234567" },
+  // { nama_lengkap: "Fitri Handayani", jenis_kelamin: "P", nomor_hp: "086789012345" },
+  // { nama_lengkap: "Gunawan Saputra", jenis_kelamin: "L", nomor_hp: "087890123456" },
+  // { nama_lengkap: "Hani Rahmawati", jenis_kelamin: "P", nomor_hp: "088901234567" },
 ] as const;
 
 // Petugas yang akan dibuat dari warga di atas (berdasarkan index)
 // PIN default: 123456
 const PETUGAS_SEED = [
   { warga_index: 0, jabatan: "Ketua RT" },       // Ahmad Fauzi
-  { warga_index: 1, jabatan: "Sekretaris" },     // Budi Santoso
-  { warga_index: 2, jabatan: "Bendahara" },      // Cahya Rahman
-  { warga_index: 4, jabatan: "Penarik Jimpitan" }, // Eko Prasetyo
+  // { warga_index: 1, jabatan: "Sekretaris" },     // Budi Santoso
+  // { warga_index: 2, jabatan: "Bendahara" },      // Cahya Rahman
+  // { warga_index: 4, jabatan: "Penarik Jimpitan" }, // Eko Prasetyo
 ] as const;
 
 const FAQ_SEED = [
@@ -159,6 +160,7 @@ export default function SeederPage() {
           nama_lengkap: w.nama_lengkap,
           jenis_kelamin: w.jenis_kelamin,
           nomor_hp: sanitizedHp,
+          isDeleted: false,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -295,6 +297,34 @@ export default function SeederPage() {
     }
   };
 
+  const runMigration = async () => {
+    if (!db) {
+      alert("Firestore belum terinisialisasi.");
+      return;
+    }
+    setLogs([]);
+    setIsRunning(true);
+    setIsDone(false);
+    const setter = setLogs;
+
+    try {
+      pushLog(setter, "━━━ Memulai Migrasi Soft Delete ━━━", "info");
+      pushLog(setter, "⚙️ Menambahkan field 'isDeleted: false' ke semua warga lama...", "info");
+
+      const result = await WargaRepository.migrateIsDeleted();
+
+      pushLog(setter, `✅ Migrasi Selesai!`, "success");
+      pushLog(setter, `📊 Total Dokumen: ${result.total}`, "info");
+      pushLog(setter, `✨ Dokumen Diupdate: ${result.updated}`, "success");
+
+      setIsDone(true);
+    } catch (err: unknown) {
+      pushLog(setter, `✗ ERROR: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`, "error");
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const statusColor: Record<LogStatus, string> = {
     info: "text-slate-400",
     success: "text-emerald-400",
@@ -405,6 +435,22 @@ export default function SeederPage() {
                 </>
               ) : (
                 "❓ Seed FAQ Saja"
+              )}
+            </button>
+
+            <button
+              id="btn-run-migration"
+              onClick={runMigration}
+              disabled={isRunning}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-600/20 border border-amber-600/40 hover:bg-amber-600/30 text-amber-300 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+            >
+              {isRunning ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-amber-500 border-t-amber-200 rounded-full animate-spin" />
+                  Memigrasi Data...
+                </>
+              ) : (
+                "⚙️ Migrasi Soft Delete (Warga)"
               )}
             </button>
           </div>

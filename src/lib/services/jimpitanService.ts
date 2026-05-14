@@ -8,23 +8,37 @@ export class JimpitanService {
    * @param targetYearMonth format "YYYY-MM"
    */
   static async getLaporanBulanan(targetYearMonth: string): Promise<{ reports: JimpitanReportRow[], currentTarget: JimpitanMonthTarget | null }> {
-    // 1. Dapatkan daftar warga
-    const wargasList = await WargaRepository.getAll();
+    // 1. Dapatkan daftar warga aktif
+    const activeWargas = await WargaRepository.getAll();
     
-    // 2. Akses target bulan ini (otomatis dilock jika belum ada)
+    // 2. Dapatkan semua transaksi uang masuk hingga bulan ini
+    const transactions = await JimpitanRepository.getTransactionsUpToMonth(targetYearMonth);
+
+    // 3. Identifikasi warga yang sudah dihapus tapi punya transaksi
+    const activeWargaIds = new Set(activeWargas.map(w => w.id));
+    const deletedWargaIdsWithData = new Set(
+      transactions
+        .filter(t => !activeWargaIds.has(t.warga_id))
+        .map(t => t.warga_id)
+    );
+
+    // Ambil detail warga yang sudah dihapus tersebut
+    const deletedWargas = await WargaRepository.getByIds(Array.from(deletedWargaIdsWithData));
+
+    // Gabungkan warga aktif dan warga dihapus yang punya data
+    const wargasList = [...activeWargas, ...deletedWargas];
+    
+    // 4. Akses target bulan ini (otomatis dilock jika belum ada)
     const currentMonthTarget = await JimpitanRepository.getMonthTarget(targetYearMonth, true);
     if (!currentMonthTarget) throw new Error("Gagal mengambil/membuat target bulan ini");
 
-    // 3. Dapatkan semua target hingga bulan ini untuk perhitungan potongan saldo
+    // 5. Dapatkan semua target hingga bulan ini untuk perhitungan potongan saldo
     const targets = await JimpitanRepository.getAllTargetsUpToMonth(targetYearMonth);
     // Buat map target untuk kemudahan pembacaan
     const targetMap = new Map<string, typeof currentMonthTarget>();
     targets.forEach(t => targetMap.set(t.id, t));
 
-    // 4. Dapatkan semua transaksi uang masuk hingga bulan ini
-    const transactions = await JimpitanRepository.getTransactionsUpToMonth(targetYearMonth);
-
-    // 5. Kita butuh mencari 'Kapan arisan/jimpitan ini dimulai' agar kita tahu sejak kapan membebankan tagihan.
+    // 6. Kita butuh mencari 'Kapan arisan/jimpitan ini dimulai' agar kita tahu sejak kapan membebankan tagihan.
     // Asumsi: Jimpitan dimulai dari bulan transaksi paling awal di sistem, ATAU kalau kosong, ya bulan ini.
     let startYearMonth = targetYearMonth;
     if (transactions.length > 0) {
@@ -49,9 +63,9 @@ export class JimpitanService {
 
     const reports: JimpitanReportRow[] = [];
 
-    // 6. Kalkulasi per warga
+    // 7. Kalkulasi per warga
     for (const warga of wargasList) {
-      // 6a. Kumpulkan semua transaksi milik warga ini
+      // 7a. Kumpulkan semua transaksi milik warga ini
       const wargaTxs = transactions.filter(t => t.warga_id === warga.id);
       
       // Total uang masuk SEPANJANG MASA
@@ -62,7 +76,7 @@ export class JimpitanService {
         .filter(t => t.bulan_tahun === targetYearMonth)
         .reduce((sum, tx) => sum + tx.nominal, 0);
 
-      // 6b. Berapa tagihan masa lalu? (Semua bulan sebelum targetYearMonth)
+      // 7b. Berapa tagihan masa lalu? (Semua bulan sebelum targetYearMonth)
       let totalTagihanLalu = 0;
       for (const t of finalTargets) {
           if (t.id < targetYearMonth) {
@@ -70,7 +84,7 @@ export class JimpitanService {
           }
       }
 
-      // 6c. Saldo yang bisa dipakai untuk bulan ini
+      // 7c. Saldo yang bisa dipakai untuk bulan ini
       // Saldo = Total Kas Masuk - Total Tagihan Masa Lalu
       const saldoTersediaBulanIni = totalUangMasuk - totalTagihanLalu;
 
@@ -84,7 +98,7 @@ export class JimpitanService {
       // Jika saldoTersediaBulanIni negatif, artinya dia punya tunggakan dari bulan sebelumnya.
       // Jika positif, kita alokasikan ke minggu-minggu di bulan ini.
 
-      // 6d. Alokasi ke minggu-minggu di targetYearMonth
+      // 7d. Alokasi ke minggu-minggu di targetYearMonth
       const weeklyStatuses: JimpitanWeeklyStatus[] = [];
       const nominalPerMinggu = currentMonthTarget.nominal_mingguan;
       
@@ -133,9 +147,18 @@ export class JimpitanService {
 
       // Saldo akhir adalah remainingToAllocate setelah dikurangi seluruh tagihan bulan ini
       
+      // Filter Akhir: Jika warga sudah dihapus, Tampilkan HANYA jika ada transaksi di bulan ini ATAU saldo tidak nol
+      if (warga.isDeleted) {
+        const hasTransactionsThisMonth = uangMasukBulanIni > 0;
+        const hasBalance = Math.abs(remainingToAllocate) > 0;
+        if (!hasTransactionsThisMonth && !hasBalance) {
+          continue;
+        }
+      }
+
       reports.push({
           warga_id: warga.id,
-          nama_warga: warga.nama_lengkap,
+          nama_warga: `${warga.nama_lengkap}${warga.isDeleted ? ' (Non-aktif)' : ''}`,
           total_masuk_bulan_ini: uangMasukBulanIni,
           status_mingguan: weeklyStatuses,
           saldo_akhir: remainingToAllocate // Bisa positif (deposit) atau negatif (tunggakan)

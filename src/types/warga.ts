@@ -8,6 +8,8 @@ export interface Warga {
   dikecualikan_jimpitan?: boolean;
   createdAt?: number; // Menggunakan epoch/number agar lebih mudah dikelola
   updatedAt?: number;
+  isDeleted?: boolean;
+  deletedAt?: number;
 }
 
 export interface WargaInput {
